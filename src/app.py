@@ -1,11 +1,24 @@
+import datetime
+import sys
+import threading
+import time
+
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 
+WIN = sys.platform.startswith('win')
+if WIN:  # 如果是 Windows 系统，使用三个斜线
+    prefix = 'sqlite:///'
+else:  # 否则使用四个斜线
+    prefix = 'sqlite:////'
+
 app = Flask(__name__)
-CORS(app)  # 添加这一行来启用 CORS 支持
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///stock_config.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 关闭对模型修改的监控
+# 在扩展类实例化前加载配置
 db = SQLAlchemy(app)
+CORS(app)  # 添加这一行来启用 CORS 支持
 
 
 class StockConfig(db.Model):
@@ -18,6 +31,13 @@ class StockConfig(db.Model):
     second_candle_new_high_days = db.Column(db.Integer, nullable=False)
     ma10_ratio = db.Column(db.Float, nullable=False)
     days_to_ma10 = db.Column(db.Integer, nullable=False)
+
+
+class StockMonitorRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    time = db.Column(db.String(50))
+    stock_code = db.Column(db.String(10))
+    description = db.Column(db.String(200))
 
 
 @app.route('/config', methods=['GET', 'POST'])
@@ -56,18 +76,48 @@ def stock_config():
         return jsonify(data), 201
 
 
-with app.app_context():
-    print('11111')
-    db.create_all()
-    print('22222')
+def monitor_stock():
+    with app.app_context():
+        while True:
+            stock_code = "300001.SZ"
+            current_price = 30.1
+            five_day_avg = 29.5
+            log_event(stock_code, current_price, five_day_avg)
+            time.sleep(60)  # 每分钟检查一次
+
+
+def log_event(stock_code, current_price, five_day_avg):
+    with app.app_context():
+        event = StockMonitorRecord(
+            time=str(datetime.datetime.now()),
+            stock_code=stock_code,
+            description=f"Stock {stock_code} dropped below 5-day average: {current_price} < {five_day_avg}"
+        )
+        db.session.add(event)
+        db.session.commit()
+
+
+@app.route('/start_monitor', methods=['GET'])
+def start_monitor():
+    thread = threading.Thread(target=monitor_stock)
+    thread.start()
+    return jsonify({"message": f"Started monitoring"}), 200
+
+
+# with app.app_context():
+#     db.drop_all()  # This will delete everything
+#     print('11111')
+#     db.create_all()
+#     print('22222')
+
+def create_tables():
+    with app.app_context():
+        db.create_all()
+
 
 if __name__ == '__main__':
-    print("ddd:")
-
-    dd = app.app_context()
-    print("ddd:", dd)
     with app.app_context():
-        print('11111')
-        db.create_all()
-        print('22222')
+        print("ddd:")
+
+    create_tables()
     app.run(debug=True)
