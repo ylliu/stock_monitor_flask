@@ -7,6 +7,7 @@ import time
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+
 WIN = sys.platform.startswith('win')
 if WIN:  # 如果是 Windows 系统，使用三个斜线
     prefix = 'sqlite:///'
@@ -19,6 +20,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 关闭对模型修改的
 # 在扩展类实例化前加载配置
 db = SQLAlchemy(app)
 CORS(app)  # 添加这一行来启用 CORS 支持
+
 
 class StockConfig(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -37,11 +39,9 @@ class StockMonitorRecord(db.Model):
     time = db.Column(db.String(50))
     stock_code = db.Column(db.String(10))
     description = db.Column(db.String(200))
-
-
-with app.app_context():
-    db.drop_all()
-    db.create_all()
+    below_5_day_line = db.Column(db.Boolean, default=False)
+    below_10_day_line = db.Column(db.Boolean, default=False)
+    concept = db.Column(db.String(200))
 
 
 @app.route('/config', methods=['GET', 'POST'])
@@ -83,19 +83,26 @@ def stock_config():
 def monitor_stock():
     with app.app_context():
         while True:
-            stock_code = "300001.SZ"
+            stock_code = "300004.SZ"
             current_price = 30.1
             five_day_avg = 29.5
-            log_event(stock_code, current_price, five_day_avg)
+            log_event(stock_code, True, False, '创业板')
             time.sleep(60)  # 每分钟检查一次
 
 
-def log_event(stock_code, current_price, five_day_avg):
+def log_event(stock_code, below_5_day_line, below_10_day_line, concept):
     with app.app_context():
+        if below_10_day_line is True:
+            description = "低于10日线"
+        elif below_5_day_line is True:
+            description = f"低于5日线"
         event = StockMonitorRecord(
             time=str(datetime.datetime.now()),
             stock_code=stock_code,
-            description=f"Stock {stock_code} dropped below 5-day average: {current_price} < {five_day_avg}"
+            description=description,
+            concept=concept,
+            below_5_day_line=below_5_day_line,
+            below_10_day_line=below_10_day_line
         )
         db.session.add(event)
         db.session.commit()
@@ -106,3 +113,46 @@ def start_monitor():
     thread = threading.Thread(target=monitor_stock)
     thread.start()
     return jsonify({"message": f"Started monitoring"}), 200
+
+
+@app.route('/monitor_records/<date>', methods=['GET'])
+def get_monitor_records(date):
+    print("time:", StockMonitorRecord.time)
+    print(f"Fetching records for date: {date}")  # Log the date being queried
+    records = StockMonitorRecord.query.filter(StockMonitorRecord.time.like(f"{date}%")).all()
+    print(f"Found records: {records}")  # Log the records found
+    # records = StockMonitorRecord.query.all()
+    # print(records)
+    if records:
+        return jsonify([{
+            'id': record.id,
+            'time': record.time,
+            'stock_code': record.stock_code,
+            'description': record.description,
+            'below_5_day_line': record.below_5_day_line,
+            'below_10_day_line': record.below_10_day_line,
+            'concept': record.concept
+        } for record in records]), 200
+    else:
+        return jsonify({'error': 'No records found for this date'}), 404
+
+
+with app.app_context():
+    # db.drop_all()  # This will delete everything
+    print('11111')
+    db.create_all()
+    print('22222')
+
+
+def create_tables():
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+
+
+if __name__ == '__main__':
+    with app.app_context():
+        print("ddd:")
+
+    create_tables()
+    app.run(debug=True)

@@ -38,6 +38,9 @@ class StockMonitorRecord(db.Model):
     time = db.Column(db.String(50))
     stock_code = db.Column(db.String(10))
     description = db.Column(db.String(200))
+    below_5_day_line = db.Column(db.Boolean, default=False)
+    below_10_day_line = db.Column(db.Boolean, default=False)
+    concept = db.Column(db.String(200))
 
 
 @app.route('/config', methods=['GET', 'POST'])
@@ -82,16 +85,23 @@ def monitor_stock():
             stock_code = "300001.SZ"
             current_price = 30.1
             five_day_avg = 29.5
-            log_event(stock_code, current_price, five_day_avg)
+            log_event(stock_code, True, False,'创业板')
             time.sleep(60)  # 每分钟检查一次
 
 
-def log_event(stock_code, current_price, five_day_avg):
+def log_event(stock_code, below_5_day_line, below_10_day_line, concept):
     with app.app_context():
+        if below_10_day_line is True:
+            description = "低于10日线"
+        elif below_5_day_line is True:
+            description = f"低于5日线"
         event = StockMonitorRecord(
             time=str(datetime.datetime.now()),
             stock_code=stock_code,
-            description=f"Stock {stock_code} dropped below 5-day average: {current_price} < {five_day_avg}"
+            description=description,
+            concept=concept,
+            below_5_day_line=below_5_day_line,
+            below_10_day_line=below_10_day_line
         )
         db.session.add(event)
         db.session.commit()
