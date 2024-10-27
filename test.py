@@ -32,6 +32,8 @@ class StockConfig(db.Model):
     second_candle_new_high_days = db.Column(db.Integer, nullable=False)
     ma10_ratio = db.Column(db.Float, nullable=False)
     days_to_ma10 = db.Column(db.Integer, nullable=False)
+    ma5_trigger = db.Column(db.Boolean, nullable=False)
+    ma10_trigger = db.Column(db.Boolean, nullable=False)
 
 
 class StockMonitorRecord(db.Model):
@@ -58,7 +60,9 @@ def stock_config():
                 'circulation_value_range_max': config.circulation_value_range_max,
                 'second_candle_new_high_days': config.second_candle_new_high_days,
                 'ma10_ratio': config.ma10_ratio,
-                'days_to_ma10': config.days_to_ma10
+                'days_to_ma10': config.days_to_ma10,
+                'ma5_trigger': config.ma5_trigger,
+                'ma10_trigger': config.ma10_trigger,
             })
         else:
             return jsonify({'error': 'No configuration found'}), 404
@@ -73,7 +77,9 @@ def stock_config():
             circulation_value_range_max=data['circulation_value_range_max'],
             second_candle_new_high_days=data['second_candle_new_high_days'],
             ma10_ratio=data['ma10_ratio'],
-            days_to_ma10=data['days_to_ma10']
+            days_to_ma10=data['days_to_ma10'],
+            ma5_trigger=data['ma5_trigger'],
+            ma10_trigger=data['ma10_trigger']
         )
         db.session.add(config)
         db.session.commit()
