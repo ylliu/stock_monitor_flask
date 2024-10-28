@@ -41,7 +41,7 @@ class DailyLine:
         return self.low < min(low_price)
 
     def increase_with_volume_spike(self, volume, volume_rate):
-        return self.is_positive() and self.is_volume_increased(volume, volume_rate)
+        return self.is_positive() and self.is_volume_increased(volume, volume_rate, 4.0)
 
     def retrace_with_low_volume(self, volume):
         return self.is_negative() and self.is_volume_decreased(volume)

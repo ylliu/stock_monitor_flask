@@ -320,7 +320,7 @@ class TushareInterface(DataInterfaceBase):
             for attempt in range(self.max_retries):
                 try:
                     today = datetime.now().date().strftime('%Y%m%d')
-                    file_path = f'data/{stock}_daily_data.csv'
+                    file_path = f'src/data/{stock}_daily_data.csv'
                     if os.path.exists((file_path)):
                         last_date = self.find_last_date_in_csv(file_path).strftime('%Y%m%d')
                     else:

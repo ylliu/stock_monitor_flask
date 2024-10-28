@@ -3,10 +3,14 @@ import os
 import sys
 import threading
 import time
-
+from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+
+from src.local_csv_interface import LocalCsvInterface
+from src.tushare_interface import TushareInterface
+from src.washing_strategy import WashingStrategyConfig, WashingStrategy
 
 WIN = sys.platform.startswith('win')
 if WIN:  # 如果是 Windows 系统，使用三个斜线
@@ -15,7 +19,7 @@ else:  # 否则使用四个斜线
     prefix = 'sqlite:////'
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = prefix + os.path.join(app.root_path, 'data.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = prefix + os.path.join(app.root_path, '../data.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 关闭对模型修改的监控
 # 在扩展类实例化前加载配置
 db = SQLAlchemy(app)
@@ -123,22 +127,52 @@ def start_monitor():
 
 @app.route('/monitor_records/<date>', methods=['GET'])
 def get_monitor_records(date):
-    print("time:", StockMonitorRecord.time)
-    print(f"Fetching records for date: {date}")  # Log the date being queried
-    records = StockMonitorRecord.query.filter(StockMonitorRecord.time.like(f"{date}%")).all()
-    print(f"Found records: {records}")  # Log the records found
+    back_days = 10
+    end_date = '2024-10-28'
+    local_running = 1
+    volume_rate = 1.5
+    positive_average_pct = 10
+    second_positive_high_days = 15
+    before_positive_circ_mv = 30
+    positive_to_ten_mean_periods = 10
+    ten_mean_scaling_factor = 1.001
+    strategy_config = WashingStrategyConfig(back_days, end_date, local_running, volume_rate, positive_average_pct,
+                                            second_positive_high_days, before_positive_circ_mv,
+                                            positive_to_ten_mean_periods, ten_mean_scaling_factor)
+    data_interface = TushareInterface()
+    stock_list = data_interface.get_all_stocks('创业板')
+    last_code = stock_list[-1]
+    first_code = stock_list[0]
+    if local_running == 1:
+        # data_interface.update_local_csv_data_fast(stock_list)
+        if not data_interface.is_data_updated(last_code) or not data_interface.is_data_updated(first_code):
+            csv_date = data_interface.find_last_date_in_csv(f'src/data/{last_code}_daily_data.csv')  # 0710
+            now = datetime.now()
+            # 获取当前小时数（24小时制）
+            current_hour = now.hour
+            pre_trade_data = data_interface.find_pre_data_publish_date(data_interface.get_today_date(), current_hour)
+            if csv_date == pre_trade_data:
+                data_interface.update_local_csv_data_fast(stock_list)
+            data_interface.update_csv_data(stock_list, 300)
+
+    data_interface = LocalCsvInterface()
+    data_interface.load_csv_data(stock_list)
+    washing_strategy = WashingStrategy(stock_list, end_date, back_days, 1, data_interface, strategy_config)
+    washing_strategy.update_realtime_data(end_date)
+    search_results = washing_strategy.find()
+    print(search_results)
     # records = StockMonitorRecord.query.all()
     # print(records)
-    if records:
+    if search_results:
         return jsonify([{
-            'id': record.id,
-            'time': record.time,
-            'stock_code': record.stock_code,
-            'description': record.description,
-            'below_5_day_line': record.below_5_day_line,
-            'below_10_day_line': record.below_10_day_line,
+            'id': 'id',
+            'time': record.end_date,
+            'stock_code': record.code,
+            'description': record.name,
+            'below_5_day_line': True,
+            'below_10_day_line': True,
             'concept': record.concept
-        } for record in records]), 200
+        } for record in search_results]), 200
     else:
         return jsonify({'error': 'No records found for this date'}), 404
 
@@ -148,6 +182,7 @@ with app.app_context():
     print('11111')
     db.create_all()
     print('22222')
+    get_monitor_records('2024-10-23')
 
 
 def create_tables():

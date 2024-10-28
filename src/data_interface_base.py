@@ -144,7 +144,7 @@ class DataInterfaceBase:
         return current_date
 
     def is_data_updated(self, stock):
-        file_path = f'data/{stock}_daily_data.csv'
+        file_path = f'src/data/{stock}_daily_data.csv'
         if not os.path.exists(file_path):
             return False
         last_date = self.find_last_date_in_csv(file_path)
