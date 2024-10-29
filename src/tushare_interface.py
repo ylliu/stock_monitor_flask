@@ -355,7 +355,7 @@ class TushareInterface(DataInterfaceBase):
         for stock in stock_list:
             if self.is_data_updated(stock):
                 continue
-            file_path = f'data/{stock}_daily_data.csv'
+            file_path = f'src/data/{stock}_daily_data.csv'
             filtered_df = new_data_frames[new_data_frames['ts_code'] == stock]
             if len(filtered_df) == 0:
                 break

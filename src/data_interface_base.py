@@ -209,6 +209,6 @@ class DataInterfaceBase:
             return False
 
     def is_updated_last_trade_date(self, code):
-        latest_date_in_csv = self.find_last_date_in_csv(f'data/{code}_daily_data.csv')
+        latest_date_in_csv = self.find_last_date_in_csv(f'src/data/{code}_daily_data.csv')
         pre_trade_date = self.find_pre_nearest_trading_day(self.get_today_date())
         return latest_date_in_csv == pre_trade_date

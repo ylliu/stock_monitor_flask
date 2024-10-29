@@ -10,7 +10,7 @@ from flask_cors import CORS
 
 from src.local_csv_interface import LocalCsvInterface
 from src.tushare_interface import TushareInterface
-from src.washing_strategy import WashingStrategyConfig, WashingStrategy
+from src.washing_strategy import WashingStrategyConfig, WashingStrategy, SearchResult
 
 WIN = sys.platform.startswith('win')
 if WIN:  # 如果是 Windows 系统，使用三个斜线
@@ -159,6 +159,11 @@ def get_monitor_records(date):
     data_interface.load_csv_data(stock_list)
     washing_strategy = WashingStrategy(stock_list, end_date, back_days, 1, data_interface, strategy_config)
     washing_strategy.update_realtime_data(end_date)
+    # result = SearchResult('300001.sz', 'name', 10, '2024-10-28',
+    #                       '2024-10-29', '2024-10-28', '2024-10-28',
+    #                       30, 'concept')
+    # search_results = []
+    # search_results.append(result)
     search_results = washing_strategy.find()
     print(search_results)
     # records = StockMonitorRecord.query.all()
@@ -168,7 +173,7 @@ def get_monitor_records(date):
             'id': 'id',
             'time': record.end_date,
             'stock_code': record.code,
-            'description': record.name,
+            'stock_name': record.name,
             'below_5_day_line': True,
             'below_10_day_line': True,
             'concept': record.concept
@@ -182,7 +187,7 @@ with app.app_context():
     print('11111')
     db.create_all()
     print('22222')
-    get_monitor_records('2024-10-23')
+    # get_monitor_records('2024-10-23')
 
 
 def create_tables():
