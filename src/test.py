@@ -10,7 +10,7 @@ from flask_cors import CORS
 
 from src.local_csv_interface import LocalCsvInterface
 from src.tushare_interface import TushareInterface
-from src.washing_strategy import WashingStrategyConfig, WashingStrategy, SearchResult
+from src.washing_strategy import WashingStrategyConfig, WashingStrategy, SearchResult, RealInfo
 
 WIN = sys.platform.startswith('win')
 if WIN:  # 如果是 Windows 系统，使用三个斜线
@@ -168,6 +168,56 @@ def get_monitor_records(date):
     print(search_results)
     # records = StockMonitorRecord.query.all()
     # print(records)
+    if search_results:
+        return jsonify([{
+            'id': 'id',
+            'time': record.end_date,
+            'stock_code': record.code,
+            'stock_name': record.name,
+            'below_5_day_line': True,
+            'below_10_day_line': True,
+            'concept': record.concept
+        } for record in search_results]), 200
+    else:
+        return jsonify({'error': 'No records found for this date'}), 404
+
+
+@app.route('/stock_price/<stock_code>', methods=['GET'])
+def get_stock_price(stock_code):
+    result = []
+    # 这里可以编写获取股票价格的代码，stock_code 是传递进来的股票代码参数
+    data_interface = TushareInterface()
+    stock_price = data_interface.get_realtime_price(stock_code)
+    stock_change = data_interface.get_realtime_change(stock_code)
+    result.append(RealInfo(stock_code, stock_price, stock_change))
+    print(stock_price)
+    print(stock_change)
+    if result:
+        return jsonify([{
+            'id': 'id',
+            'stock_code': record.code,
+            'stock_price': record.price,
+            'stock_change': record.change
+        } for record in result]), 200
+    else:
+        return jsonify({'error': 'No records found for this date'}), 404
+    # return jsonify({"stock_code": stock_code,
+    #                 "stock_price": stock_price,
+    #                 "stock_change": stock_change}), 200
+    # return jsonify({
+    #         'id': 'id',
+    #         'time': '2024-10-28',
+    #         'stock_code': '30001.sz',
+    #         'stock_name': '半分',
+    #         'below_5_day_line': True,
+    #         'below_10_day_line': True,
+    #         'concept': '概念'
+    #     }),200
+    result = SearchResult('300001.sz', 'name', 10, '2024-10-28',
+                          '2024-10-29', '2024-10-28', '2024-10-28',
+                          30, 'concept')
+    search_results = []
+    search_results.append(result)
     if search_results:
         return jsonify([{
             'id': 'id',
