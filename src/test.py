@@ -187,11 +187,11 @@ def get_stock_price(stock_code):
     result = []
     # 这里可以编写获取股票价格的代码，stock_code 是传递进来的股票代码参数
     data_interface = TushareInterface()
-    stock_price = data_interface.get_realtime_price(stock_code)
-    stock_change = data_interface.get_realtime_change(stock_code)
-    result.append(RealInfo(stock_code, stock_price, stock_change))
-    print(stock_price)
-    print(stock_change)
+    stock_codes = stock_code.split(',')
+    for code in stock_codes:
+        stock_price = data_interface.get_realtime_price(code)
+        stock_change = data_interface.get_realtime_change(code)
+        result.append(RealInfo(code, stock_price, stock_change))
     if result:
         return jsonify([{
             'id': 'id',
