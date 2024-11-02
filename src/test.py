@@ -197,9 +197,19 @@ def get_stock_price(stock_code):
     for search in search_results_data:
         stock_price = data_interface.get_realtime_price(search.code)
         stock_change = data_interface.get_realtime_change(search.code)
-
+        stock_low = data_interface.get_realtime_low(search.code)
+        five_days_mean = data_interface.get_five_days_mean(stock_price, search.code)
+        ten_days_mean = data_interface.get_ten_days_mean(stock_price, search.code)
+        if stock_low < five_days_mean:
+            is_low_ma5 = True
+        else:
+            is_low_ma5 = False
+        if stock_low < ten_days_mean:
+            is_low_ma10 = True
+        else:
+            is_low_ma10 = False
         result.append(
-            RealInfo(search.code, search.name, stock_price, stock_change, False, False,
+            RealInfo(search.code, search.name, stock_price, stock_change, is_low_ma5, is_low_ma10,
                      search.concept))
 
     if result:

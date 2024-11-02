@@ -491,3 +491,66 @@ class TushareInterface(DataInterfaceBase):
             except Exception as e:
                 print(f"发生异常: {e}")
                 atime.sleep(1)
+
+    def get_five_days_mean(self, price, code):
+        if self.is_between_9_30_and_19_00():
+            pre_date = self.find_pre_nearest_trading_day(self.get_today_date())
+            before_four_price = self.get_history_close_price(code, pre_date, 4)
+            before_four_price.append(price)
+            five_mean_price = sum(before_four_price) / len(before_four_price)
+        else:
+            pre_date = self.find_pre_nearest_trading_day(self.get_today_date())
+            print(code)
+            five_mean_price = self.get_history_mean_price(code, pre_date, 5)
+        return five_mean_price
+
+    def get_ten_days_mean(self, price, code):
+        if self.is_between_9_30_and_19_00():
+            pre_date = self.find_pre_nearest_trading_day(self.get_today_date())
+            before_four_price = self.get_history_close_price(code, pre_date, 9)
+            before_four_price.append(price)
+            ten_mean_price = sum(before_four_price) / len(before_four_price)
+        else:
+            pre_date = self.find_pre_nearest_trading_day(self.get_today_date())
+            ten_mean_price = self.get_history_mean_price(code, pre_date, 10)
+        return ten_mean_price
+
+    def get_history_close_price(self, code, end_date, how_many_days):
+        df = self.data_between_from_csv(code, end_date, how_many_days)
+        # print(df)
+        ts_code_list = df['close_qfq'].to_list()
+        return ts_code_list
+
+    def data_between_from_csv(self, code, end_date, back_days):
+        basic_csv_path = f'src/data/{code}_daily_data.csv'  # 基础数据的CSV文件路径
+        cur = (os.getcwd())
+        if not os.path.exists(basic_csv_path):
+            return None
+        df_basic = pd.read_csv(basic_csv_path, parse_dates=['trade_date'])
+        # print(df_basic)
+        selected_row = df_basic[df_basic['trade_date'] == end_date]
+        if not selected_row.empty:
+            index = selected_row.index[0]
+            result = df_basic.iloc[index - back_days + 1:index + 1]
+            # print(result)
+            return result
+
+    def get_history_mean_price(self, code, end_date, how_many_days):
+        df_basic_filtered = self.data_between_from_csv(code, end_date, how_many_days)
+        # print(end_date)
+        # print(df_basic_filtered['close_qfq'].to_list())
+
+        mean = df_basic_filtered['close_qfq'].mean()
+        return round(mean, 2)
+
+    def get_realtime_low(self, code):
+        for attempt in range(self.max_retries):
+            try:
+                df = ts.realtime_quote(ts_code=code)
+                if len(df) == 0:
+                    continue
+                data = df.iloc[0]
+                return data['LOW']
+            except Exception as e:
+                print(f"发生异常: {e}")
+                atime.sleep(1)
