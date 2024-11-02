@@ -436,6 +436,20 @@ class TushareInterface(DataInterfaceBase):
                 print(f"发生异常: {e}")
                 atime.sleep(1)
 
+    def get_normal_circ_mv(self, code, date):
+        pro = ts.pro_api()
+        for attempt in range(self.max_retries):
+            try:
+                df = pro.daily_basic(ts_code=code,
+                                     trade_date=self.find_nearest_trading_day(date).strftime('%Y%m%d'),
+                                     fields='ts_code,circ_mv')
+                if len(df) > 0:
+                    return round(df['circ_mv'].iloc[0] / 1e4, 2)
+                return 100000
+            except Exception as e:
+                print(f"发生异常: {e}")
+                atime.sleep(1)
+
     def get_concept(self, code):
         pro = ts.pro_api()
         for attempt in range(self.max_retries):
