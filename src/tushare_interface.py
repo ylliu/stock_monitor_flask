@@ -237,11 +237,12 @@ class TushareInterface(DataInterfaceBase):
 
         circ_mvs = pro.daily_basic(ts_code=stock,
                                    start_date=start_time, end_date=end_date,
-                                   fields=['ts_code', 'trade_date', 'free_share', 'close'])
+                                   fields=['ts_code', 'trade_date', 'free_share', 'close', 'circ_mv'])
         circ_mvs = circ_mvs.sort_values(by='trade_date')
-        circ_mvs = circ_mvs.assign(circ_mv=circ_mvs['free_share'] * circ_mvs['close'] / 1e4).round(2)
+        circ_mvs = circ_mvs.assign(circ_mv=circ_mvs['free_share'] * circ_mvs['close'] / 1e4,
+                                   normal_circ_mv=circ_mvs['circ_mv'] / 1e4).round(2)
         circ_mvs = circ_mvs.sort_values(by='trade_date')
-        df = pd.merge(df, circ_mvs[['trade_date', 'circ_mv']], on='trade_date', how='left')
+        df = pd.merge(df, circ_mvs[['trade_date', 'circ_mv', 'normal_circ_mv']], on='trade_date', how='left')
         return df
 
     def get_data_between_dates_fast(self, pro, start_time, end_date, stock):
