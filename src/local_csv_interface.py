@@ -4,7 +4,6 @@ from datetime import datetime
 import pandas
 import pandas as pd
 
-
 from src.daily_line import DailyLine
 from src.data_interface_base import DataInterfaceBase
 from src.tushare_interface import TushareInterface
@@ -64,6 +63,49 @@ class LocalCsvInterface(DataInterfaceBase):
         # print('cost:', end - start)
         return daily_lines
 
+    def get_daily_lines_from_csv(self, code, end_date, back_days):
+
+        # start = time.time()
+        # df_basic_filtered = self.data_between_from_csv(code, end_date, back_days)
+        df_basic_filtered = self.data_between_from_csv(code, end_date, back_days)
+        if df_basic_filtered is None:
+            return None
+        # print(df_basic_filtered)
+        daily_lines = []
+        for index, row in df_basic_filtered.iterrows():
+            # 提取每一行的数据
+            trade_date = str(row['trade_date'])
+            open_price = row['open_qfq']
+            close_price = row['close_qfq']
+            high_price = row['high_qfq']
+            low_price = row['low_qfq']
+            volume = row['vol']
+            turnover_rate_f = row['turnover_rate_f']
+            code = row['ts_code']
+            average_price = row['weight_avg']
+            pre_close = 0
+            volume_ratio = 0
+            if 'pre_close_qfq' in row:
+                pre_close = row['pre_close_qfq']
+            if 'volume_ratio' in row:
+                volume_ratio = row['volume_ratio']
+            max_pct_change = self.change_pct_of_day(high_price, pre_close, low_price)
+            up_shadow_pct = self.up_shadow_pct_of_day(high_price, pre_close, close_price, open_price)
+            # 创建一个新的DailyLine对象并添加到列表中
+            daily_line = DailyLine(trade_date, open_price, close_price, high_price, low_price, volume,
+                                   turnover_rate_f,
+                                   code, average_price, max_pct_change, up_shadow_pct, volume_ratio)
+            daily_lines.append(daily_line)
+
+        today = self.get_today_date()
+        if not isinstance(end_date, str):
+            end_date = end_date.strftime("%Y%m%d")
+        if self.is_a_stock_trading_day(today) and today == end_date and self.is_between_9_30_and_19_00():
+            daily_realtime = self.realtime_daily_lines[code]
+            daily_lines.append(daily_realtime)
+        # end = time.time()
+        # print('cost:', end - start)
+        return daily_lines
     def get_name(self, code):
         basic_csv_path = f'src/data/{code}_daily_data.csv'  # 基础数据的CSV文件路径
         df_basic = pd.read_csv(basic_csv_path)
@@ -227,6 +269,14 @@ class LocalCsvInterface(DataInterfaceBase):
         if not row.empty:
             # 获取close_qfq的值
             return row.iloc[0]['circ_mv']
+
+    def get_circ_mv4(self, code, date):
+        df = self.daily_line_dict[code]
+        row = df[df['trade_date'] == date]
+        if not row.empty:
+            # 获取close_qfq的值
+            return row.iloc[0]['normal_circ_mv']
+
     def get_circ_mv_2(self, code, date):
         basic_csv_path = f'src/data/{code}_daily_data.csv'  # 基础数据的CSV文件路径
         dtype_dict = {'trade_date': str}

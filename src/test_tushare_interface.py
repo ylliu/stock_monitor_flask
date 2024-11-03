@@ -6,7 +6,7 @@ from src.tushare_interface import TushareInterface
 class TestTushareInterface(TestCase):
     def test_get_five_days_mean(self):
         tushare_interface = TushareInterface()
-        ma5 = tushare_interface.get_five_days_mean(10.4, '300001.SZ')
+        ma5 = tushare_interface.get_five_days_mean(10.4, '300277.SZ')
         self.assertEqual(22.29, ma5)
 
     def test_get_ten_days_mean(self):
@@ -33,3 +33,8 @@ class TestTushareInterface(TestCase):
         print(pre_date)
         circ_mv = tushare_interface.get_circ_mv('300001.SZ', pre_date)
         print(circ_mv)
+
+    def test_get_realtime_info(self):
+        tushare_interface = TushareInterface()
+        df = tushare_interface.get_realtime_info('300001.SZ,300002.SZ')
+        print(df)

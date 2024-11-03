@@ -130,20 +130,28 @@ def start_monitor():
 
 @app.route('/monitor_records/<date>', methods=['GET'])
 def get_monitor_records(date):
-    back_days = 10
-    end_date = '2024-10-28'
+    print(date)
+    config = StockConfig.query.order_by(StockConfig.id.desc()).first()
+    back_days = 15
+    end_date = date
     local_running = 1
-    volume_rate = 1.5
-    positive_average_pct = 10
-    second_positive_high_days = 15
-    before_positive_circ_mv = 30
-    positive_to_ten_mean_periods = 10
-    ten_mean_scaling_factor = 1.001
+    volume_rate = config.first_day_vol_ratio
+    positive_average_pct = 11
+    second_positive_high_days = config.second_candle_new_high_days
+    before_positive_limit_circ_mv_min = config.free_float_value_range_min
+    before_positive_limit_circ_mv_max = config.free_float_value_range_max
+    before_positive_free_circ_mv_min = config.circulation_value_range_min
+    before_positive_free_circ_mv_max = config.circulation_value_range_max
+    positive_to_ten_mean_periods = config.days_to_ma10
+    ten_mean_scaling_factor = config.ma10_ratio
     strategy_config = WashingStrategyConfig(back_days, end_date, local_running, volume_rate, positive_average_pct,
-                                            second_positive_high_days, before_positive_circ_mv,
+                                            second_positive_high_days, before_positive_limit_circ_mv_min,
+                                            before_positive_limit_circ_mv_max, before_positive_free_circ_mv_min,
+                                            before_positive_free_circ_mv_max,
                                             positive_to_ten_mean_periods, ten_mean_scaling_factor)
     data_interface = TushareInterface()
     stock_list = data_interface.get_all_stocks('创业板')
+    # stock_list = ['300224.SZ']
     last_code = stock_list[-1]
     first_code = stock_list[0]
     if local_running == 1:
@@ -158,9 +166,9 @@ def get_monitor_records(date):
                 data_interface.update_local_csv_data_fast(stock_list)
             data_interface.update_csv_data(stock_list, 300)
 
-    data_interface = LocalCsvInterface()
-    data_interface.load_csv_data(stock_list)
-    washing_strategy = WashingStrategy(stock_list, end_date, back_days, 1, data_interface, strategy_config)
+    local_data_interface = LocalCsvInterface()
+    local_data_interface.load_csv_data(stock_list)
+    washing_strategy = WashingStrategy(stock_list, end_date, back_days, 1, local_data_interface, strategy_config)
     washing_strategy.update_realtime_data(end_date)
     # result = SearchResult('300001.sz', 'name', 10, '2024-10-28',
     #                       '2024-10-29', '2024-10-28', '2024-10-28',
@@ -168,6 +176,8 @@ def get_monitor_records(date):
     # search_results = []
     # search_results.append(result)
     search_results = washing_strategy.find()
+    washing_strategy.save_to_xlsx(search_results, end_date)
+
     search_results_data.clear()
     search_results_data.extend(search_results)
     print(search_results)
@@ -181,25 +191,57 @@ def get_monitor_records(date):
             'stock_name': record.name,
             'below_5_day_line': False,
             'below_10_day_line': False,
+            'limit_circ_mv': record.limit_circ_mv,
+            'free_circ_mv': record.free_circ_mv,
             'concept': record.concept
         } for record in search_results]), 200
     else:
         return jsonify({'error': 'No records found for this date'}), 404
 
 
-@app.route('/stock_price/<stock_code>', methods=['GET'])
-def get_stock_price(stock_code):
+@app.route('/stock_K_info/<stock_code>', methods=['GET'])
+def get_stock_k_line(stock_code):
+    local_data_interface = LocalCsvInterface()
+    end_date = local_data_interface.find_nearest_trading_day2(local_data_interface.get_today_date())
+    k_lines = local_data_interface.get_daily_lines_from_csv(stock_code, end_date, 20)
+    if k_lines:
+        return jsonify([{
+            'close': line.close,
+            'high': line.high,
+            'low': line.low,
+            'open': line.open,
+            'timestamp': datetime.strptime(line.trade_date,"%Y-%m-%d %H:%M:%S").timestamp(),
+            'volume': line.vol
+        } for line in k_lines]), 200
+    else:
+        return jsonify({'error': 'No line found for this date'}), 404
+
+
+@app.route('/stock_price', methods=['GET'])
+def get_stock_price():
     print()
     result = []
+    code_list = []
     # 这里可以编写获取股票价格的代码，stock_code 是传递进来的股票代码参数
     data_interface = TushareInterface()
-    stock_codes = stock_code.split(',')
     for search in search_results_data:
-        stock_price = data_interface.get_realtime_price(search.code)
-        stock_change = data_interface.get_realtime_change(search.code)
-        stock_low = data_interface.get_realtime_low(search.code)
+        code_list.append(search.code)
+    code_string = concat_code(code_list)
+    # print(code_string)
+    df = data_interface.get_realtime_info(code_string)
+    # print(df)
+
+    for search in search_results_data:
+        stock_price = df.loc[df['TS_CODE'] == search.code, 'PRICE'].values[0]
+        pre_close_price = df.loc[df['TS_CODE'] == search.code, 'PRE_CLOSE'].values[0]
+        stock_change = round((stock_price - pre_close_price) / pre_close_price * 100, 2)
+        stock_low = df.loc[df['TS_CODE'] == search.code, 'LOW'].values[0]
+        limit_circ_mv = search.limit_circ_mv
+        free_circ_mv = search.free_circ_mv
         five_days_mean = data_interface.get_five_days_mean(stock_price, search.code)
         ten_days_mean = data_interface.get_ten_days_mean(stock_price, search.code)
+        if five_days_mean is None:
+            continue
         if stock_low < five_days_mean:
             is_low_ma5 = True
         else:
@@ -209,7 +251,8 @@ def get_stock_price(stock_code):
         else:
             is_low_ma10 = False
         result.append(
-            RealInfo(search.code, search.name, stock_price, stock_change, is_low_ma5, is_low_ma10,
+            RealInfo(search.code, search.name, stock_price, stock_change, limit_circ_mv, free_circ_mv, is_low_ma5,
+                     is_low_ma10,
                      search.concept))
 
     if result:
@@ -219,6 +262,8 @@ def get_stock_price(stock_code):
             'stock_name': record.name,
             'stock_price': record.price,
             'stock_change': record.change,
+            'limit_circ_mv': record.limit_circ_mv,
+            'free_circ_mv': record.free_circ_mv,
             'below_5_day_line': record.is_low_ma5,
             'below_10_day_line': record.is_low_ma10,
             'concept': record.concept
@@ -254,6 +299,11 @@ def get_stock_price(stock_code):
         } for record in search_results]), 200
     else:
         return jsonify({'error': 'No records found for this date'}), 404
+
+
+def concat_code(code_list):
+    code_string = ','.join(code_list)
+    return code_string
 
 
 with app.app_context():

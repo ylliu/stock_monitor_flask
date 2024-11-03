@@ -494,6 +494,18 @@ class TushareInterface(DataInterfaceBase):
                 print(f"发生异常: {e}")
                 atime.sleep(1)
 
+    def get_realtime_info(self, code):
+        for attempt in range(self.max_retries):
+            try:
+                df = ts.realtime_quote(ts_code=code)
+                if len(df) == 0:
+                    continue
+
+                return df[['NAME', 'TS_CODE', 'PRE_CLOSE', 'LOW', 'PRICE']]
+            except Exception as e:
+                print(f"发生异常: {e}")
+                atime.sleep(1)
+
     def get_realtime_change(self, code):
         for attempt in range(self.max_retries):
             try:
@@ -508,19 +520,19 @@ class TushareInterface(DataInterfaceBase):
                 atime.sleep(1)
 
     def get_five_days_mean(self, price, code):
-        if self.is_between_9_30_and_19_00():
+        if self.is_between_9_30_and_19_00() and self.is_a_stock_trading_day(self.get_today_date()):
             pre_date = self.find_pre_nearest_trading_day(self.get_today_date())
             before_four_price = self.get_history_close_price(code, pre_date, 4)
             before_four_price.append(price)
             five_mean_price = sum(before_four_price) / len(before_four_price)
         else:
             pre_date = self.find_pre_nearest_trading_day(self.get_today_date())
-            print(code)
+            # print(code)
             five_mean_price = self.get_history_mean_price(code, pre_date, 5)
         return five_mean_price
 
     def get_ten_days_mean(self, price, code):
-        if self.is_between_9_30_and_19_00():
+        if self.is_between_9_30_and_19_00() and self.is_a_stock_trading_day(self.get_today_date()):
             pre_date = self.find_pre_nearest_trading_day(self.get_today_date())
             before_four_price = self.get_history_close_price(code, pre_date, 9)
             before_four_price.append(price)
@@ -533,6 +545,8 @@ class TushareInterface(DataInterfaceBase):
     def get_history_close_price(self, code, end_date, how_many_days):
         df = self.data_between_from_csv(code, end_date, how_many_days)
         # print(df)
+        if df is None:
+            return None
         ts_code_list = df['close_qfq'].to_list()
         return ts_code_list
 
@@ -554,7 +568,8 @@ class TushareInterface(DataInterfaceBase):
         df_basic_filtered = self.data_between_from_csv(code, end_date, how_many_days)
         # print(end_date)
         # print(df_basic_filtered['close_qfq'].to_list())
-
+        if df_basic_filtered is None:
+            return None
         mean = df_basic_filtered['close_qfq'].mean()
         return round(mean, 2)
 
