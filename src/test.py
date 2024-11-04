@@ -203,14 +203,14 @@ def get_monitor_records(date):
 def get_stock_k_line(stock_code):
     local_data_interface = LocalCsvInterface()
     end_date = local_data_interface.find_nearest_trading_day2(local_data_interface.get_today_date())
-    k_lines = local_data_interface.get_daily_lines_from_csv(stock_code, end_date, 20)
+    k_lines = local_data_interface.get_daily_lines_from_csv(stock_code, end_date, 50)
     if k_lines:
         return jsonify([{
             'close': line.close,
             'high': line.high,
             'low': line.low,
             'open': line.open,
-            'timestamp': datetime.strptime(line.trade_date,"%Y-%m-%d %H:%M:%S").timestamp(),
+            'timestamp': datetime.strptime(line.trade_date,"%Y-%m-%d %H:%M:%S").timestamp()*1000,
             'volume': line.vol
         } for line in k_lines]), 200
     else:
