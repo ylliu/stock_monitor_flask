@@ -25,7 +25,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 关闭对模型修改的
 # 在扩展类实例化前加载配置
 db = SQLAlchemy(app)
 CORS(app)  # 添加这一行来启用 CORS 支持
-
+CORS(app, resources={r"/*": {"origins": "*"}})
 search_results = []
 
 
@@ -325,4 +325,4 @@ if __name__ == '__main__':
         print("ddd:")
 
     create_tables()
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
