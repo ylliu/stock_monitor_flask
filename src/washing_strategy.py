@@ -24,15 +24,18 @@ def normalize(value, max_value):
 
 
 class RealInfo:
-    def __init__(self, code, name, price, change, limit_circ_mv, free_circ_mv, is_low_ma5, is_low_ma10, concept):
+    def __init__(self, code, name, price, change, limit_circ_mv, free_circ_mv, is_low_ma5, is_low_ma10, start_date,
+                 end_date, concept):
         self.code = code
         self.name = name
         self.price = price
         self.change = change
-        self.limit_circ_mv = limit_circ_mv,
-        self.free_circ_mv = free_circ_mv,
+        self.limit_circ_mv = limit_circ_mv
+        self.free_circ_mv = free_circ_mv
         self.is_low_ma5 = is_low_ma5
         self.is_low_ma10 = is_low_ma10
+        self.start_date = start_date
+        self.end_date = end_date
         self.concept = concept
 
 

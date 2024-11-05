@@ -193,6 +193,8 @@ def get_monitor_records(date):
             'below_10_day_line': False,
             'limit_circ_mv': record.limit_circ_mv,
             'free_circ_mv': record.free_circ_mv,
+            'bullish_start_date': record.start_date,
+            'bullish_end_date': record.end_date,
             'concept': record.concept
         } for record in search_results]), 200
     else:
@@ -210,7 +212,7 @@ def get_stock_k_line(stock_code):
             'high': line.high,
             'low': line.low,
             'open': line.open,
-            'timestamp': datetime.strptime(line.trade_date,"%Y-%m-%d %H:%M:%S").timestamp()*1000,
+            'timestamp': datetime.strptime(line.trade_date, "%Y-%m-%d %H:%M:%S").timestamp() * 1000,
             'volume': line.vol
         } for line in k_lines]), 200
     else:
@@ -252,7 +254,7 @@ def get_stock_price():
             is_low_ma10 = False
         result.append(
             RealInfo(search.code, search.name, stock_price, stock_change, limit_circ_mv, free_circ_mv, is_low_ma5,
-                     is_low_ma10,
+                     is_low_ma10, search.start_date, search.end_date,
                      search.concept))
 
     if result:
@@ -266,6 +268,8 @@ def get_stock_price():
             'free_circ_mv': record.free_circ_mv,
             'below_5_day_line': record.is_low_ma5,
             'below_10_day_line': record.is_low_ma10,
+            'bullish_start_date': record.start_date,
+            'bullish_end_date': record.end_date,
             'concept': record.concept
         } for record in result]), 200
     else:
