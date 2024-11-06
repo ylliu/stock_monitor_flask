@@ -337,7 +337,7 @@ def create_tables():
     with app.app_context():
         db.drop_all()
         db.create_all()
-        get_monitor_records('2024-11-06')
+        # get_monitor_records('2024-11-06')
 
 
 if __name__ == '__main__':
