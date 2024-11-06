@@ -497,13 +497,14 @@ class TushareInterface(DataInterfaceBase):
     def get_realtime_info(self, code):
         for attempt in range(self.max_retries):
             try:
+                print(code)
                 df = ts.realtime_quote(ts_code=code)
                 if len(df) == 0:
                     continue
 
                 return df[['NAME', 'TS_CODE', 'PRE_CLOSE', 'LOW', 'PRICE']]
             except Exception as e:
-                print(f"发生异常: {e}")
+                print(f"发生异常_realtime_info: {e}")
                 atime.sleep(1)
 
     def get_realtime_change(self, code):
@@ -523,6 +524,8 @@ class TushareInterface(DataInterfaceBase):
         if self.is_between_9_30_and_19_00() and self.is_a_stock_trading_day(self.get_today_date()):
             pre_date = self.find_pre_nearest_trading_day(self.get_today_date())
             before_four_price = self.get_history_close_price(code, pre_date, 4)
+            if before_four_price is None:
+                return None
             before_four_price.append(price)
             five_mean_price = sum(before_four_price) / len(before_four_price)
         else:
@@ -534,9 +537,11 @@ class TushareInterface(DataInterfaceBase):
     def get_ten_days_mean(self, price, code):
         if self.is_between_9_30_and_19_00() and self.is_a_stock_trading_day(self.get_today_date()):
             pre_date = self.find_pre_nearest_trading_day(self.get_today_date())
-            before_four_price = self.get_history_close_price(code, pre_date, 9)
-            before_four_price.append(price)
-            ten_mean_price = sum(before_four_price) / len(before_four_price)
+            before_nine_price = self.get_history_close_price(code, pre_date, 9)
+            if before_nine_price is None:
+                return None
+            before_nine_price.append(price)
+            ten_mean_price = sum(before_nine_price) / len(before_nine_price)
         else:
             pre_date = self.find_pre_nearest_trading_day(self.get_today_date())
             ten_mean_price = self.get_history_mean_price(code, pre_date, 10)
