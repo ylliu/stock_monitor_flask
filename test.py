@@ -343,6 +343,5 @@ def create_tables():
 if __name__ == '__main__':
     with app.app_context():
         print("ddd:")
-    get_monitor_records('2024-11-06')
     create_tables()
     app.run(host='0.0.0.0', port=5000)
