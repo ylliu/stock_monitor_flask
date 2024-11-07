@@ -4,6 +4,8 @@ import sys
 import threading
 import time
 from datetime import datetime
+
+import pandas as pd
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -225,12 +227,25 @@ def get_stock_price():
     result = []
     code_list = []
     # 这里可以编写获取股票价格的代码，stock_code 是传递进来的股票代码参数
+    if len(search_results_data)==0:
+        return jsonify({'error': 'Please click select stock'}), 404
     data_interface = TushareInterface()
     for search in search_results_data:
         code_list.append(search.code)
-    code_string = concat_code(code_list)
+
+        # Splitting codes into chunks of 50 for batch processing
+    chunked_codes = [code_list[i:i + 40] for i in range(0, len(code_list), 40)]
+    dfs = []
+    for chunk in chunked_codes:
+        code_string = concat_code(chunk)
+        df = data_interface.get_realtime_info(code_string)
+        dfs.append(df)
+        print(dfs)
+        # Combine data frames
+
     # print(code_string)
-    df = data_interface.get_realtime_info(code_string)
+    df = pd.concat(dfs, ignore_index=True)
+    # df = data_interface.get_realtime_info(code_string)
     # print(df)
 
     for search in search_results_data:
@@ -242,7 +257,7 @@ def get_stock_price():
         free_circ_mv = search.free_circ_mv
         five_days_mean = data_interface.get_five_days_mean(stock_price, search.code)
         ten_days_mean = data_interface.get_ten_days_mean(stock_price, search.code)
-        if five_days_mean is None:
+        if five_days_mean is None or ten_days_mean is None:
             continue
         if stock_low < five_days_mean:
             is_low_ma5 = True
@@ -322,11 +337,11 @@ def create_tables():
     with app.app_context():
         db.drop_all()
         db.create_all()
+        # get_monitor_records('2024-11-06')
 
 
 if __name__ == '__main__':
     with app.app_context():
         print("ddd:")
-
     create_tables()
     app.run(host='0.0.0.0', port=5000)
