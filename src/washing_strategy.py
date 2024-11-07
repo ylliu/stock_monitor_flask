@@ -126,6 +126,7 @@ class WashingStrategy:
                 count += 1
                 min_low_price = min(min_low_price, day.low)
                 max_high_price = max(max_high_price, day.high)
+                max_vol = max(max_vol, day.vol)
                 if day.max_pct_change > max_pct_change:
                     up_shadow_pct_of_max_pct_change_day = day.up_shadow_pct
                 continue
@@ -145,17 +146,13 @@ class WashingStrategy:
             if free_circ_mv > self.config.before_positive_free_circ_mv_max or limit_circ_mv < self.config.before_positive_free_circ_mv_min:
                 # print('circ_mv bigger than 30:', circ_mv)
                 return None
+        if limit_circ_mv is None or free_circ_mv is None:
+            return None
         max_two_high_price = max(self.daily_lines[1].high, self.daily_lines[2].high)
         min_two_low_price = min(self.daily_lines[1].low, self.daily_lines[2].low)
         average_pct = round(((max_two_high_price - min_two_low_price) / previous_daily_line.close * 100) / 2, 2)
         # print(average_pct)
         if average_pct < self.config.positive_average_pct:
-            return None
-        second_positive_high_days = self.config.second_positive_high_days
-        is_max_high = self.data_interface.is_break_days_high(day.code,
-                                                             self.daily_lines[2].trade_date[:10].replace(
-                                                                 "-", ""), second_positive_high_days)
-        if not is_max_high:
             return None
 
         start_date = self.daily_lines[1].trade_date[:10].replace("-", "")
@@ -164,6 +161,19 @@ class WashingStrategy:
         else:
             end_date_pos = index_pos - 1
         end_date = self.daily_lines[end_date_pos].trade_date[:10].replace("-", "")
+
+        second_positive_high_days = self.config.second_positive_high_days
+        is_max_high = self.data_interface.is_break_days_high(day.code,
+                                                             self.daily_lines[end_date_pos].trade_date[:10].replace(
+                                                                 "-", ""), second_positive_high_days)
+        if not is_max_high:
+            return None
+
+        for neg_index in range(index_pos, len(self.daily_lines)):
+            if self.daily_lines[neg_index].is_negative():
+                if self.daily_lines[neg_index].vol > max_vol:
+                    print("neg vol bigger than pos vol")
+                    return None
 
         concept = TushareInterface().get_concept(day.code)
 

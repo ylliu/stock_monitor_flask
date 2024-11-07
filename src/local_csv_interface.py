@@ -106,6 +106,7 @@ class LocalCsvInterface(DataInterfaceBase):
         # end = time.time()
         # print('cost:', end - start)
         return daily_lines
+
     def get_name(self, code):
         basic_csv_path = f'src/data/{code}_daily_data.csv'  # 基础数据的CSV文件路径
         df_basic = pd.read_csv(basic_csv_path)
@@ -269,6 +270,7 @@ class LocalCsvInterface(DataInterfaceBase):
         if not row.empty:
             # 获取close_qfq的值
             return row.iloc[0]['circ_mv']
+        return None
 
     def get_circ_mv4(self, code, date):
         df = self.daily_line_dict[code]
@@ -276,6 +278,7 @@ class LocalCsvInterface(DataInterfaceBase):
         if not row.empty:
             # 获取close_qfq的值
             return row.iloc[0]['normal_circ_mv']
+        return None
 
     def get_circ_mv_2(self, code, date):
         basic_csv_path = f'src/data/{code}_daily_data.csv'  # 基础数据的CSV文件路径
