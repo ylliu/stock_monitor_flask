@@ -67,7 +67,8 @@ class LocalCsvInterface(DataInterfaceBase):
 
         # start = time.time()
         # df_basic_filtered = self.data_between_from_csv(code, end_date, back_days)
-        df_basic_filtered = self.data_between_from_csv(code, end_date, back_days)
+        pre_date = self.find_nearest_trading_day2(end_date.strftime("%Y%m%d"))
+        df_basic_filtered = self.data_between_from_csv(code, pre_date, back_days)
         if df_basic_filtered is None:
             return None
         # print(df_basic_filtered)
@@ -101,8 +102,20 @@ class LocalCsvInterface(DataInterfaceBase):
         if not isinstance(end_date, str):
             end_date = end_date.strftime("%Y%m%d")
         if self.is_a_stock_trading_day(today) and today == end_date and self.is_between_9_30_and_19_00():
-            daily_realtime = self.realtime_daily_lines[code]
-            daily_lines.append(daily_realtime)
+            # daily_realtime = self.realtime_daily_lines[code]
+            tushare_interface = TushareInterface()
+            daily_line_value = tushare_interface.gat_realtime_data_of_split_stocks(code)
+            daily_lines_realtime = daily_line_value[code]
+            date = str(datetime.strptime(daily_lines_realtime.trade_date, "%Y%m%d"))
+
+            daily_lines_realtime.trade_date =date
+            # daily_line_real = DailyLine(daily_lines_realtime["DATE"], daily_lines_realtime["OPEN"],
+            #                             daily_lines_realtime["PRICE"], daily_lines_realtime["HIGH"],
+            #                             daily_lines_realtime["LOW"],
+            #                             daily_lines_realtime["VOLUME"],
+            #                             0,
+            #                             code, 0, 0, 0, 0)
+            daily_lines.append(daily_lines_realtime)
         # end = time.time()
         # print('cost:', end - start)
         return daily_lines

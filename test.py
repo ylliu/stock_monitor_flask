@@ -206,7 +206,7 @@ def get_monitor_records(date):
 @app.route('/stock_K_info/<stock_code>', methods=['GET'])
 def get_stock_k_line(stock_code):
     local_data_interface = LocalCsvInterface()
-    end_date = local_data_interface.find_nearest_trading_day2(local_data_interface.get_today_date())
+    end_date = local_data_interface.find_nearest_trading_day(local_data_interface.get_today_date())
     k_lines = local_data_interface.get_daily_lines_from_csv(stock_code, end_date, 50)
     if k_lines:
         return jsonify([{
@@ -325,23 +325,23 @@ def concat_code(code_list):
     return code_string
 
 
-with app.app_context():
-    # db.drop_all()  # This will delete everything
-    print('11111')
-    db.create_all()
-    print('22222')
-    # get_monitor_records('2024-10-23')
+# with app.app_context():
+#     # db.drop_all()  # This will delete everything
+#     print('11111')
+#     db.create_all()
+#     print('22222')
+#     # get_monitor_records('2024-10-23')
 
 
-def create_tables():
-    with app.app_context():
-        db.drop_all()
-        db.create_all()
-        # get_monitor_records('2024-11-06')
+# def create_tables():
+#     with app.app_context():
+#         db.drop_all()
+#         db.create_all()
+#         # get_monitor_records('2024-11-06')
 
 
 if __name__ == '__main__':
     with app.app_context():
         print("ddd:")
-    create_tables()
+    # create_tables()
     app.run(host='0.0.0.0', port=5000)
