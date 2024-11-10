@@ -4,6 +4,7 @@ import sys
 import threading
 import time
 from datetime import datetime
+import schedule
 
 import pandas as pd
 from flask import Flask, jsonify, request
@@ -29,6 +30,7 @@ db = SQLAlchemy(app)
 CORS(app)  # 添加这一行来启用 CORS 支持
 CORS(app, resources={r"/*": {"origins": "*"}})
 search_results = []
+is_updating = False
 
 
 class StockConfig(db.Model):
@@ -132,6 +134,8 @@ def start_monitor():
 
 @app.route('/monitor_records/<date>', methods=['GET'])
 def get_monitor_records(date):
+    if is_updating:
+        return jsonify({'error': 'Is updating data please wait'}), 201
     print(date)
     config = StockConfig.query.order_by(StockConfig.id.desc()).first()
     back_days = 15
@@ -227,7 +231,7 @@ def get_stock_price():
     result = []
     code_list = []
     # 这里可以编写获取股票价格的代码，stock_code 是传递进来的股票代码参数
-    if len(search_results_data)==0:
+    if len(search_results_data) == 0:
         return jsonify({'error': 'Please click select stock'}), 404
     data_interface = TushareInterface()
     for search in search_results_data:
@@ -325,6 +329,27 @@ def concat_code(code_list):
     return code_string
 
 
+def update_data():
+    data_interface = TushareInterface()
+    stock_list = data_interface.get_all_stocks('创业板')
+    # stock_list = ['300044.SZ']
+    last_code = stock_list[-1]
+    first_code = stock_list[0]
+    if True:
+        if not data_interface.is_data_updated(last_code) or not data_interface.is_data_updated(first_code):
+            csv_date = data_interface.find_last_date_in_csv(f'src/data/{last_code}_daily_data.csv')  # 0710
+            now = datetime.now()
+            # 获取当前小时数（24小时制）
+            current_hour = now.hour
+            pre_trade_data = data_interface.find_pre_data_publish_date(data_interface.get_today_date(), current_hour)
+            if csv_date == pre_trade_data:
+                data_interface.update_local_csv_data_fast(stock_list)
+            data_interface.update_csv_data(stock_list, 300)
+
+    local_data_interface = LocalCsvInterface()
+    local_data_interface.load_csv_data(stock_list)
+
+
 # with app.app_context():
 #     # db.drop_all()  # This will delete everything
 #     print('11111')
@@ -337,11 +362,31 @@ def concat_code(code_list):
 #     with app.app_context():
 #         db.drop_all()
 #         db.create_all()
-#         # get_monitor_records('2024-11-06')
+#         # get_monit
+#         or_records('2024-11-06')
 
+
+def scheduled_task():
+    # 每天定时执行任务
+    while True:
+        current_time = datetime.now()
+        print(current_time)
+        if current_time.weekday() <= 5 and current_time.hour == 19 and current_time.minute == 0:
+            # 在周一到周五的晚上7点执行任务
+            print("执行任务...")
+            global is_updating
+            is_updating = True
+            update_data()
+            is_updating = False
+            # 在这里添加你的任务代码
+        time.sleep(30)
+
+
+thread = threading.Thread(target=scheduled_task)
+thread.start()
 
 if __name__ == '__main__':
-    with app.app_context():
-        print("ddd:")
+    print("ddd:")
+
     # create_tables()
     app.run(host='0.0.0.0', port=5000)
