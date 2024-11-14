@@ -168,8 +168,8 @@ def get_monitor_records(date):
             # 获取当前小时数（24小时制）
             current_hour = now.hour
             pre_trade_data = data_interface.find_pre_data_publish_date(data_interface.get_today_date(), current_hour)
-            if csv_date == pre_trade_data:
-                data_interface.update_local_csv_data_fast(stock_list)
+            # if csv_date == pre_trade_data:
+            #     data_interface.update_local_csv_data_fast(stock_list)
             data_interface.update_csv_data(stock_list, 300)
 
     local_data_interface = LocalCsvInterface()
@@ -342,8 +342,8 @@ def update_data():
             # 获取当前小时数（24小时制）
             current_hour = now.hour
             pre_trade_data = data_interface.find_pre_data_publish_date(data_interface.get_today_date(), current_hour)
-            if csv_date == pre_trade_data:
-                data_interface.update_local_csv_data_fast(stock_list)
+            # if csv_date == pre_trade_data:
+            #     data_interface.update_local_csv_data_fast(stock_list)
             data_interface.update_csv_data(stock_list, 300)
 
     local_data_interface = LocalCsvInterface()
