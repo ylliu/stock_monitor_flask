@@ -463,12 +463,12 @@ def update_data():
     local_data_interface.load_csv_data(stock_list)
 
 
-with app.app_context():
-    db.drop_all()  # This will delete everything
-    print('11111')
-    db.create_all()
-    print('22222')
-    # get_monitor_records('2024-10-23')
+# with app.app_context():
+#     db.drop_all()  # This will delete everything
+#     print('11111')
+#     db.create_all()
+#     print('22222')
+#     # get_monitor_records('2024-10-23')
 
 
 def create_tables():
