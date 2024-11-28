@@ -120,9 +120,8 @@ class WashingStrategy:
         for index_pos in range(1, len(self.daily_lines)):
             day = self.daily_lines[index_pos]
             first_positive_day = self.daily_lines[1]
-            if first_positive_day.increase_with_volume_spike(previous_daily_line.vol, self.config.volume_rate) \
-                    and day.is_higher_than_yesterday_close_price(self.daily_lines[index_pos - 1].close) \
-                    and day.is_positive():
+            if first_positive_day.is_volume_increased(previous_daily_line.vol, self.config.volume_rate) \
+                    and day.is_higher_than_yesterday_close_price(self.daily_lines[index_pos - 1].close):
                 count += 1
                 min_low_price = min(min_low_price, day.low)
                 max_high_price = max(max_high_price, day.high)
