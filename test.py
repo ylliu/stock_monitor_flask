@@ -32,6 +32,8 @@ search_results = []
 is_updating = False
 main = "main"
 chi_next = "chiNext"
+
+
 class StockChinextConfig(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_day_vol_ratio = db.Column(db.Float, nullable=False)
@@ -44,6 +46,8 @@ class StockChinextConfig(db.Model):
     days_to_ma10 = db.Column(db.Integer, nullable=False)
     ma5_trigger = db.Column(db.Boolean, nullable=False)
     ma10_trigger = db.Column(db.Boolean, nullable=False)
+    two_positive_pct_avg = db.Column(db.Integer, nullable=False)
+
 
 class StockMainConfig(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -57,6 +61,7 @@ class StockMainConfig(db.Model):
     days_to_ma10 = db.Column(db.Integer, nullable=False)
     ma5_trigger = db.Column(db.Boolean, nullable=False)
     ma10_trigger = db.Column(db.Boolean, nullable=False)
+    two_positive_pct_avg = db.Column(db.Float, nullable=False)
 
 
 class StockMonitorRecord(db.Model):
@@ -71,13 +76,11 @@ class StockMonitorRecord(db.Model):
 
 @app.route('/config/<board>', methods=['GET', 'POST'])
 def stock_config(board):
-
-
     if request.method == 'GET':
-        if board== main:
+        if board == main:
             config = StockMainConfig.query.order_by(StockMainConfig.id.desc()).first()
             print(config)
-        elif board== chi_next:
+        elif board == chi_next:
             config = StockChinextConfig.query.order_by(StockChinextConfig.id.desc()).first()
             print(config)
         if config:
@@ -92,6 +95,7 @@ def stock_config(board):
                 'days_to_ma10': config.days_to_ma10,
                 'ma5_trigger': config.ma5_trigger,
                 'ma10_trigger': config.ma10_trigger,
+                'two_positive_pct_avg': config.two_positive_pct_avg
             })
         else:
             return jsonify({'error': 'No configuration found'}), 404
@@ -109,7 +113,8 @@ def stock_config(board):
                 ma10_ratio=data['ma10_ratio'],
                 days_to_ma10=data['days_to_ma10'],
                 ma5_trigger=data['ma5_trigger'],
-                ma10_trigger=data['ma10_trigger']
+                ma10_trigger=data['ma10_trigger'],
+                two_positive_pct_avg=data['two_positive_pct_avg']
             )
         elif board == chi_next:
             config = StockChinextConfig(
@@ -122,7 +127,8 @@ def stock_config(board):
                 ma10_ratio=data['ma10_ratio'],
                 days_to_ma10=data['days_to_ma10'],
                 ma5_trigger=data['ma5_trigger'],
-                ma10_trigger=data['ma10_trigger']
+                ma10_trigger=data['ma10_trigger'],
+                two_positive_pct_avg=data['two_positive_pct_avg']
             )
 
         db.session.add(config)
@@ -166,21 +172,21 @@ def start_monitor():
 
 
 @app.route('/monitor_records/<date>/<board>', methods=['GET'])
-def get_monitor_records(date,board):
+def get_monitor_records(date, board):
     if is_updating:
         return jsonify({'error': 'Is updating data please wait'}), 201
     print(date)
-    if board==main:
+    if board == main:
         config = StockMainConfig.query.order_by(StockMainConfig.id.desc()).first()
-        board_name="主板"
-    elif board ==chi_next:
+        board_name = "主板"
+    elif board == chi_next:
         config = StockChinextConfig.query.order_by(StockChinextConfig.id.desc()).first()
         board_name = "创业板"
     back_days = 15
     end_date = date
     local_running = 1
     volume_rate = config.first_day_vol_ratio
-    positive_average_pct = 11
+    positive_average_pct = config.two_positive_pct_avg
     second_positive_high_days = config.second_candle_new_high_days
     before_positive_limit_circ_mv_min = config.free_float_value_range_min
     before_positive_limit_circ_mv_max = config.free_float_value_range_max
@@ -243,6 +249,7 @@ def get_monitor_records(date,board):
         } for record in search_results]), 200
     else:
         return jsonify({'error': 'No records found for this date'}), 404
+
 
 #
 # @app.route('/monitor_records/zb/<date>', methods=['GET'])
@@ -478,7 +485,6 @@ def create_tables():
         # get_monit
 
 
-
 def scheduled_task():
     # 每天定时执行任务
     while True:
@@ -501,5 +507,5 @@ thread.start()
 if __name__ == '__main__':
     print("ddd:")
 
-    # create_tables()
+    create_tables()
     app.run(host='0.0.0.0', port=5000)
