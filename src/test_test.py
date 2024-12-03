@@ -5,8 +5,9 @@ from test import get_monitor_records, get_stock_price, app, concat_code, get_sto
 
 class Test(TestCase):
     def test_get_monitor_records(self):
-        get_monitor_records('2024-11-03')
-        self.fail()
+        with app.app_context():
+            get_monitor_records('2024-11-03', "chiNext")
+            self.fail()
 
     def test_get_stock_price(self):
         with app.app_context():

@@ -142,7 +142,7 @@ class WashingStrategy:
                 return None
         free_circ_mv = self.data_interface.get_circ_mv4(day.code, previous_daily_line.trade_date[:10].replace("-", ""))
         if free_circ_mv is not None:
-            if free_circ_mv > self.config.before_positive_free_circ_mv_max or limit_circ_mv < self.config.before_positive_free_circ_mv_min:
+            if free_circ_mv > self.config.before_positive_free_circ_mv_max or free_circ_mv < self.config.before_positive_free_circ_mv_min:
                 # print('circ_mv bigger than 30:', circ_mv)
                 return None
         if limit_circ_mv is None or free_circ_mv is None:

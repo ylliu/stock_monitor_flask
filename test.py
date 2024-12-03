@@ -250,6 +250,85 @@ def get_monitor_records(date, board):
     else:
         return jsonify({'error': 'No records found for this date'}), 404
 
+@app.route('/verity_code/<date>/<board>/<code>', methods=['GET'])
+def verity_code(date, board, code):
+    if is_updating:
+        return jsonify({'error': 'Is updating data please wait'}), 201
+    print(date)
+    if board == main:
+        config = StockMainConfig.query.order_by(StockMainConfig.id.desc()).first()
+        board_name = "主板"
+    elif board == chi_next:
+        config = StockChinextConfig.query.order_by(StockChinextConfig.id.desc()).first()
+        board_name = "创业板"
+    back_days = 15
+    end_date = date
+    local_running = 1
+    volume_rate = config.first_day_vol_ratio
+    positive_average_pct = config.two_positive_pct_avg
+    second_positive_high_days = config.second_candle_new_high_days
+    before_positive_limit_circ_mv_min = config.free_float_value_range_min
+    before_positive_limit_circ_mv_max = config.free_float_value_range_max
+    before_positive_free_circ_mv_min = config.circulation_value_range_min
+    before_positive_free_circ_mv_max = config.circulation_value_range_max
+    positive_to_ten_mean_periods = config.days_to_ma10
+    ten_mean_scaling_factor = config.ma10_ratio
+    strategy_config = WashingStrategyConfig(back_days, end_date, local_running, volume_rate, positive_average_pct,
+                                            second_positive_high_days, before_positive_limit_circ_mv_min,
+                                            before_positive_limit_circ_mv_max, before_positive_free_circ_mv_min,
+                                            before_positive_free_circ_mv_max,
+                                            positive_to_ten_mean_periods, ten_mean_scaling_factor)
+    data_interface = TushareInterface()
+    stock_list = [code]
+    # stock_list = ['300044.SZ']
+    last_code = stock_list[-1]
+    first_code = stock_list[0]
+    if local_running == 1:
+        # data_interface.update_local_csv_data_fast(stock_list)
+        if not data_interface.is_data_updated(last_code) or not data_interface.is_data_updated(first_code):
+            csv_date = data_interface.find_last_date_in_csv(f'src/data/{last_code}_daily_data.csv')  # 0710
+            now = datetime.now()
+            # 获取当前小时数（24小时制）
+            current_hour = now.hour
+            pre_trade_data = data_interface.find_pre_data_publish_date(data_interface.get_today_date(), current_hour)
+            # if csv_date == pre_trade_data:
+            #     data_interface.update_local_csv_data_fast(stock_list)
+            data_interface.update_csv_data(stock_list, 300)
+
+    local_data_interface = LocalCsvInterface()
+    local_data_interface.load_csv_data(stock_list)
+    washing_strategy = WashingStrategy(stock_list, end_date, back_days, 1, local_data_interface, strategy_config)
+    washing_strategy.update_realtime_data(end_date)
+    # result = SearchResult('300001.sz', 'name', 10, '2024-10-28',
+    #                       '2024-10-29', '2024-10-28', '2024-10-28',
+    #                       30, 'concept')
+    # search_results = []
+    # search_results.append(result)
+    search_results = washing_strategy.find()
+    washing_strategy.save_to_xlsx(search_results, end_date)
+
+    search_results_data.clear()
+    search_results_data.extend(search_results)
+    print(search_results)
+    # records = StockMonitorRecord.query.all()
+    # print(records)
+    if search_results:
+        return jsonify([{
+            'id': 'id',
+            'time': record.end_date,
+            'stock_code': record.code,
+            'stock_name': record.name,
+            'below_5_day_line': False,
+            'below_10_day_line': False,
+            'limit_circ_mv': record.limit_circ_mv,
+            'free_circ_mv': record.free_circ_mv,
+            'bullish_start_date': record.start_date,
+            'bullish_end_date': record.end_date,
+            'concept': record.concept
+        } for record in search_results]), 200
+    else:
+        return jsonify({'error': 'No records found for this date'}), 404
+
 
 #
 # @app.route('/monitor_records/zb/<date>', methods=['GET'])
