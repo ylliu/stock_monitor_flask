@@ -557,11 +557,11 @@ def update_data():
 #     # get_monitor_records('2024-10-23')
 
 
-def create_tables():
-    with app.app_context():
-        db.drop_all()
-        db.create_all()
-        # get_monit
+# def create_tables():
+#     with app.app_context():
+#         db.drop_all()
+#         db.create_all()
+#         # get_monit
 
 
 def scheduled_task():
