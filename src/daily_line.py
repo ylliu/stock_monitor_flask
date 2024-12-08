@@ -27,12 +27,10 @@ class DailyLine:
     def is_negative(self):
         return self.close < self.open
 
-    def is_volume_increased(self, volume, volume_rate_min, volume_rate_max):
+    def is_volume_increased(self, volume, volume_rate_min):
         if volume < 1.0:
             return False
-        res1 = self.vol / volume > volume_rate_min
-        res2 = self.vol / volume < volume_rate_max
-        return self.vol / volume > volume_rate_min and self.vol / volume < volume_rate_max
+        return self.vol / volume > volume_rate_min
 
     def is_volume_decreased(self, volume):
         return self.vol < volume * 1.1
@@ -41,7 +39,7 @@ class DailyLine:
         return self.low < min(low_price)
 
     def increase_with_volume_spike(self, volume, volume_rate):
-        return self.is_positive() and self.is_volume_increased(volume, volume_rate, 4.0)
+        return self.is_positive() and self.is_volume_increased(volume, volume_rate)
 
     def retrace_with_low_volume(self, volume):
         return self.is_negative() and self.is_volume_decreased(volume)
