@@ -182,7 +182,7 @@ def get_monitor_records(date, board):
     elif board == chi_next:
         config = StockChinextConfig.query.order_by(StockChinextConfig.id.desc()).first()
         board_name = "创业板"
-    back_days = 15
+    back_days = config.days_to_ma10 + 5
     end_date = date
     local_running = 1
     volume_rate = config.first_day_vol_ratio
