@@ -201,7 +201,7 @@ def get_monitor_records(date, board):
                                             positive_to_ten_mean_periods, ten_mean_scaling_factor)
     data_interface = TushareInterface()
     stock_list = data_interface.get_all_stocks(board_name)
-    # stock_list = ['300044.SZ']
+    stock_list = ['300071.SZ']
     last_code = stock_list[-1]
     first_code = stock_list[0]
     if local_running == 1:
@@ -245,10 +245,12 @@ def get_monitor_records(date, board):
             'free_circ_mv': record.free_circ_mv,
             'bullish_start_date': record.start_date,
             'bullish_end_date': record.end_date,
-            'concept': record.concept
+            'concept': record.concept,
+            'max_turnover_rate': record.max_turnover_rate
         } for record in search_results]), 200
     else:
         return jsonify({'error': 'No records found for this date'}), 404
+
 
 @app.route('/verity_code/<date>/<board>/<code>', methods=['GET'])
 def verity_code(date, board, code):
@@ -261,7 +263,7 @@ def verity_code(date, board, code):
     elif board == chi_next:
         config = StockChinextConfig.query.order_by(StockChinextConfig.id.desc()).first()
         board_name = "创业板"
-    back_days = 15
+    back_days = config.days_to_ma10 + 5
     end_date = date
     local_running = 1
     volume_rate = config.first_day_vol_ratio
@@ -460,6 +462,7 @@ def get_stock_price():
         free_circ_mv = search.free_circ_mv
         five_days_mean = data_interface.get_five_days_mean(stock_price, search.code)
         ten_days_mean = data_interface.get_ten_days_mean(stock_price, search.code)
+        max_turnover_rate = search.max_turnover_rate
         if five_days_mean is None or ten_days_mean is None:
             continue
         if stock_low < five_days_mean:
@@ -473,7 +476,7 @@ def get_stock_price():
         result.append(
             RealInfo(search.code, search.name, stock_price, stock_change, limit_circ_mv, free_circ_mv, is_low_ma5,
                      is_low_ma10, search.start_date, search.end_date,
-                     search.concept))
+                     search.concept, max_turnover_rate))
 
     if result:
         return jsonify([{
@@ -488,7 +491,8 @@ def get_stock_price():
             'below_10_day_line': record.is_low_ma10,
             'bullish_start_date': record.start_date,
             'bullish_end_date': record.end_date,
-            'concept': record.concept
+            'concept': record.concept,
+            'max_turnover_rate': record.max_turnover_rate
         } for record in result]), 200
     else:
         return jsonify({'error': 'No records found for this date'}), 404
@@ -549,6 +553,7 @@ def update_data():
     local_data_interface.load_csv_data(stock_list)
 
 
+#
 # with app.app_context():
 #     db.drop_all()  # This will delete everything
 #     print('11111')

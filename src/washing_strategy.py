@@ -25,7 +25,7 @@ def normalize(value, max_value):
 
 class RealInfo:
     def __init__(self, code, name, price, change, limit_circ_mv, free_circ_mv, is_low_ma5, is_low_ma10, start_date,
-                 end_date, concept):
+                 end_date, concept, max_turnover_rate):
         self.code = code
         self.name = name
         self.price = price
@@ -37,11 +37,12 @@ class RealInfo:
         self.start_date = start_date
         self.end_date = end_date
         self.concept = concept
+        self.max_turnover_rate = max_turnover_rate
 
 
 class SearchResult:
     def __init__(self, code, name, count, start_date, end_date, limit_circ_mv, free_circ_mv,
-                 concept):
+                 concept, max_turnover_rate):
         self.code = code
         self.name = name
         self.count = count
@@ -50,6 +51,7 @@ class SearchResult:
         self.limit_circ_mv = limit_circ_mv
         self.free_circ_mv = free_circ_mv
         self.concept = concept
+        self.max_turnover_rate = max_turnover_rate
 
     def __eq__(self, other):
         if not isinstance(other, SearchResult):
@@ -116,7 +118,7 @@ class WashingStrategy:
         up_max_pct = 0
         min_low_price = 99999
         count = 0
-
+        max_turnover_rate = 0
         for index_pos in range(1, len(self.daily_lines)):
             day = self.daily_lines[index_pos]
             first_positive_day = self.daily_lines[1]
@@ -125,6 +127,7 @@ class WashingStrategy:
                 count += 1
                 min_low_price = min(min_low_price, day.low)
                 max_high_price = max(max_high_price, day.high)
+                max_turnover_rate = max(max_turnover_rate, day.turnover_rate)
                 max_vol = max(max_vol, day.vol)
                 if day.max_pct_change > max_pct_change:
                     up_shadow_pct_of_max_pct_change_day = day.up_shadow_pct
@@ -179,7 +182,7 @@ class WashingStrategy:
         # concept = None
         name = self.data_interface.get_name(day.code)
         searchResult = SearchResult(day.code, name, count, start_date,
-                                    end_date, limit_circ_mv, free_circ_mv, concept)
+                                    end_date, limit_circ_mv, free_circ_mv, concept, max_turnover_rate)
         return searchResult
 
     def save_to_xlsx(self, found_stocks, end_date):
