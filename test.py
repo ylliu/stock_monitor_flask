@@ -201,7 +201,7 @@ def get_monitor_records(date, board):
                                             positive_to_ten_mean_periods, ten_mean_scaling_factor)
     data_interface = TushareInterface()
     stock_list = data_interface.get_all_stocks(board_name)
-    stock_list = ['300071.SZ']
+    # stock_list = ['300071.SZ']
     last_code = stock_list[-1]
     first_code = stock_list[0]
     if local_running == 1:
