@@ -311,6 +311,7 @@ class TushareInterface(DataInterfaceBase):
         print(len(stock_list))
         index = 0
         for stock in stock_list:
+            print(stock)
             index += 1
             progress = index / len(stock_list) * 100
             if index % 10 == 0:
