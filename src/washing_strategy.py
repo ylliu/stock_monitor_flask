@@ -72,7 +72,7 @@ class WashingStrategyConfig:
     def __init__(self, back_days, end_date, enable_local_run,
                  volume_rate, positive_average_pct, second_positive_high_days, before_positive_limit_circ_mv_min,
                  before_positive_limit_circ_mv_max, before_positive_free_circ_mv_min, before_positive_free_circ_mv_max,
-                 positive_to_ten_mean_periods, ten_mean_scaling_factor):
+                 positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days):
         self.back_days = back_days
         self.end_date = end_date
         self.enable_local_run = enable_local_run
@@ -85,6 +85,7 @@ class WashingStrategyConfig:
         self.before_positive_free_circ_mv_max = before_positive_free_circ_mv_max
         self.positive_to_ten_mean_periods = positive_to_ten_mean_periods
         self.ten_mean_scaling_factor = ten_mean_scaling_factor
+        self.min_positive_days = min_positive_days
 
 
 class WashingStrategy:
@@ -136,7 +137,7 @@ class WashingStrategy:
             else:
                 break
 
-        if count < 2:
+        if count < self.config.min_positive_days:
             return None
         limit_circ_mv = self.data_interface.get_circ_mv3(day.code, previous_daily_line.trade_date[:10].replace("-", ""))
         if limit_circ_mv is not None:

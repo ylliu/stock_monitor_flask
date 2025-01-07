@@ -47,6 +47,7 @@ class StockChinextConfig(db.Model):
     ma5_trigger = db.Column(db.Boolean, nullable=False)
     ma10_trigger = db.Column(db.Boolean, nullable=False)
     two_positive_pct_avg = db.Column(db.Integer, nullable=False)
+    min_positive_days = db.Column(db.Integer, nullable=False)
 
 
 class StockMainConfig(db.Model):
@@ -62,6 +63,7 @@ class StockMainConfig(db.Model):
     ma5_trigger = db.Column(db.Boolean, nullable=False)
     ma10_trigger = db.Column(db.Boolean, nullable=False)
     two_positive_pct_avg = db.Column(db.Float, nullable=False)
+    min_positive_days = db.Column(db.Integer, nullable=False)
 
 
 class StockMonitorRecord(db.Model):
@@ -95,7 +97,8 @@ def stock_config(board):
                 'days_to_ma10': config.days_to_ma10,
                 'ma5_trigger': config.ma5_trigger,
                 'ma10_trigger': config.ma10_trigger,
-                'two_positive_pct_avg': config.two_positive_pct_avg
+                'two_positive_pct_avg': config.two_positive_pct_avg,
+                'min_positive_days': config.min_positive_days
             })
         else:
             return jsonify({'error': 'No configuration found'}), 404
@@ -114,7 +117,8 @@ def stock_config(board):
                 days_to_ma10=data['days_to_ma10'],
                 ma5_trigger=data['ma5_trigger'],
                 ma10_trigger=data['ma10_trigger'],
-                two_positive_pct_avg=data['two_positive_pct_avg']
+                two_positive_pct_avg=data['two_positive_pct_avg'],
+                min_positive_days=data['min_positive_days']
             )
         elif board == chi_next:
             config = StockChinextConfig(
@@ -128,7 +132,8 @@ def stock_config(board):
                 days_to_ma10=data['days_to_ma10'],
                 ma5_trigger=data['ma5_trigger'],
                 ma10_trigger=data['ma10_trigger'],
-                two_positive_pct_avg=data['two_positive_pct_avg']
+                two_positive_pct_avg=data['two_positive_pct_avg'],
+                min_positive_days=data['min_positive_days']
             )
 
         db.session.add(config)
@@ -194,11 +199,12 @@ def get_monitor_records(date, board):
     before_positive_free_circ_mv_max = config.circulation_value_range_max
     positive_to_ten_mean_periods = config.days_to_ma10
     ten_mean_scaling_factor = config.ma10_ratio
+    min_positive_days = config.min_positive_days
     strategy_config = WashingStrategyConfig(back_days, end_date, local_running, volume_rate, positive_average_pct,
                                             second_positive_high_days, before_positive_limit_circ_mv_min,
                                             before_positive_limit_circ_mv_max, before_positive_free_circ_mv_min,
                                             before_positive_free_circ_mv_max,
-                                            positive_to_ten_mean_periods, ten_mean_scaling_factor)
+                                            positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days)
     data_interface = TushareInterface()
     stock_list = data_interface.get_all_stocks(board_name)
     # stock_list = ['300071.SZ']

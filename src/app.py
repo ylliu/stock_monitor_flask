@@ -31,6 +31,7 @@ class StockConfig(db.Model):
     second_candle_new_high_days = db.Column(db.Integer, nullable=False)
     ma10_ratio = db.Column(db.Float, nullable=False)
     days_to_ma10 = db.Column(db.Integer, nullable=False)
+    min_positive_days = db.Column(db.Integer, nullable=False)
 
 
 class StockMonitorRecord(db.Model):
@@ -57,7 +58,8 @@ def stock_config():
                 'circulation_value_range_max': config.circulation_value_range_max,
                 'second_candle_new_high_days': config.second_candle_new_high_days,
                 'ma10_ratio': config.ma10_ratio,
-                'days_to_ma10': config.days_to_ma10
+                'days_to_ma10': config.days_to_ma10,
+                'min_positive_days': config.min_positive_days
             })
         else:
             return jsonify({'error': 'No configuration found'}), 404
@@ -72,7 +74,8 @@ def stock_config():
             circulation_value_range_max=data['circulation_value_range_max'],
             second_candle_new_high_days=data['second_candle_new_high_days'],
             ma10_ratio=data['ma10_ratio'],
-            days_to_ma10=data['days_to_ma10']
+            days_to_ma10=data['days_to_ma10'],
+            min_positive_days=data['min_positive_days']
         )
         db.session.add(config)
         db.session.commit()
@@ -85,7 +88,7 @@ def monitor_stock():
             stock_code = "300001.SZ"
             current_price = 30.1
             five_day_avg = 29.5
-            log_event(stock_code, True, False,'创业板')
+            log_event(stock_code, True, False, '创业板')
             time.sleep(60)  # 每分钟检查一次
 
 
@@ -114,11 +117,12 @@ def start_monitor():
     return jsonify({"message": f"Started monitoring"}), 200
 
 
-# with app.app_context():
-#     db.drop_all()  # This will delete everything
-#     print('11111')
-#     db.create_all()
-#     print('22222')
+with app.app_context():
+    db.drop_all()  # This will delete everything
+    print('11111')
+    db.create_all()
+    print('22222')
+
 
 def create_tables():
     with app.app_context():
