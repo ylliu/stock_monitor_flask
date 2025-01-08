@@ -162,7 +162,7 @@ class WashingStrategy:
         pct1 = (self.daily_lines[1].high - self.daily_lines[1].low) / previous_daily_line.close * 100
         pct2 = (self.daily_lines[2].high - self.daily_lines[2].low) / previous_daily_line.close * 100
         average_pct = round((pct1 + pct2) / 2, 2)
-        if self.daily_lines[3].is_positive():
+        if self.config.min_positive_days > 2 and self.daily_lines[3].is_positive():
             pct3 = (self.daily_lines[3].high - self.daily_lines[3].low) / previous_daily_line.close * 100
             average_pct = round((pct1 + pct2 + pct3) / 3, 2)
 
