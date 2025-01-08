@@ -561,7 +561,7 @@ class TushareInterface(DataInterfaceBase):
     def data_between_from_csv(self, code, end_date, back_days):
         current_dir = os.getcwd()
         basic_csv_path = os.path.join(current_dir, f'src/data/{code}_daily_data.csv')
-        print(basic_csv_path)
+        # print(basic_csv_path)
         cur = (os.getcwd())
         if not os.path.exists(basic_csv_path):
             return None
@@ -626,7 +626,7 @@ class TushareInterface(DataInterfaceBase):
         df_basic_filtered['ma_5'] = df_basic_filtered['close_qfq'].rolling(window=5).mean()
         # 滤除NA值（前几个数据因无法计算均线可能为空）
         ma_5_values = df_basic_filtered['ma_5'].dropna().to_numpy()
-        print(ma_5_values)
+        # print(ma_5_values)
         if len(ma_5_values) < 2:
             return None  # 均线数据不足以拟合
 
