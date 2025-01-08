@@ -1,7 +1,9 @@
+import math
 import os.path
 import time as atime
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 import tushare as ts
 
@@ -557,7 +559,9 @@ class TushareInterface(DataInterfaceBase):
         return ts_code_list
 
     def data_between_from_csv(self, code, end_date, back_days):
-        basic_csv_path = f'src/data/{code}_daily_data.csv'  # 基础数据的CSV文件路径
+        current_dir = os.getcwd()
+        basic_csv_path = os.path.join(current_dir, f'src/data/{code}_daily_data.csv')
+        print(basic_csv_path)
         cur = (os.getcwd())
         if not os.path.exists(basic_csv_path):
             return None
@@ -590,3 +594,50 @@ class TushareInterface(DataInterfaceBase):
             except Exception as e:
                 print(f"发生异常: {e}")
                 atime.sleep(1)
+
+    def calculate_slope(self, close):
+        # 检查是否有足够的数据点
+        if len(close) < 2:
+            return None  # 无法计算斜率
+
+        # 创建时间序列 x，值为 [0, 1, 2, ..., len(close)-1]
+        x = np.arange(len(close))
+        y = np.array(close)
+
+        # 计算线性回归斜率
+        # 公式: slope = (n * Σ(x*y) - Σx * Σy) / (n * Σ(x^2) - (Σx)^2)
+        n = len(x)
+        slope = (n * np.sum(x * y) - np.sum(x) * np.sum(y)) / (n * np.sum(x ** 2) - (np.sum(x)) ** 2)
+        return slope
+
+    def get_slope_of_days(self, code, end_date, how_many_days):
+        """
+        计算指定时间段的5日平均股价形成的均线角度
+        """
+        # 获取数据
+        how_many_days = 2 * how_many_days - 1
+        df_basic_filtered = self.data_between_from_csv(code, end_date, how_many_days)
+
+        # 检查数据是否为空或不足5天
+        if df_basic_filtered is None or len(df_basic_filtered) < 5:
+            return None
+
+        # 计算5日均线
+        df_basic_filtered['ma_5'] = df_basic_filtered['close_qfq'].rolling(window=5).mean()
+        # 滤除NA值（前几个数据因无法计算均线可能为空）
+        ma_5_values = df_basic_filtered['ma_5'].dropna().to_numpy()
+        print(ma_5_values)
+        if len(ma_5_values) < 2:
+            return None  # 均线数据不足以拟合
+
+        # 生成天数索引（从0开始）
+        days = np.arange(len(ma_5_values))
+
+        # 使用线性拟合计算均线斜率
+        slope, _ = np.polyfit(days, ma_5_values, 1)
+
+        # 将斜率转换为角度
+        angle_rad = math.atan(slope)  # 弧度
+        angle_deg = round(math.degrees(angle_rad), 2)  # 转换为角度，保留两位小数
+
+        return angle_deg

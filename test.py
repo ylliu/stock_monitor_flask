@@ -207,7 +207,7 @@ def get_monitor_records(date, board):
                                             positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days)
     data_interface = TushareInterface()
     stock_list = data_interface.get_all_stocks(board_name)
-    # stock_list = ['300071.SZ']
+    # stock_list = ['601226.SH']
     last_code = stock_list[-1]
     first_code = stock_list[0]
     if local_running == 1:
@@ -252,7 +252,11 @@ def get_monitor_records(date, board):
             'bullish_start_date': record.start_date,
             'bullish_end_date': record.end_date,
             'concept': record.concept,
-            'max_turnover_rate': record.max_turnover_rate
+            'max_turnover_rate': record.max_turnover_rate,
+            'angle_of_5': record.angle_of_5,
+            'angle_of_10': record.angle_of_10,
+            'angle_of_20': record.angle_of_20,
+            'angle_of_30': record.angle_of_30,
         } for record in search_results]), 200
     else:
         return jsonify({'error': 'No records found for this date'}), 404
@@ -281,11 +285,12 @@ def verity_code(date, board, code):
     before_positive_free_circ_mv_max = config.circulation_value_range_max
     positive_to_ten_mean_periods = config.days_to_ma10
     ten_mean_scaling_factor = config.ma10_ratio
+    min_positive_days = config.min_positive_days
     strategy_config = WashingStrategyConfig(back_days, end_date, local_running, volume_rate, positive_average_pct,
                                             second_positive_high_days, before_positive_limit_circ_mv_min,
                                             before_positive_limit_circ_mv_max, before_positive_free_circ_mv_min,
                                             before_positive_free_circ_mv_max,
-                                            positive_to_ten_mean_periods, ten_mean_scaling_factor)
+                                            positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days)
     data_interface = TushareInterface()
     stock_list = [code]
     # stock_list = ['300044.SZ']
@@ -469,6 +474,10 @@ def get_stock_price():
         five_days_mean = data_interface.get_five_days_mean(stock_price, search.code)
         ten_days_mean = data_interface.get_ten_days_mean(stock_price, search.code)
         max_turnover_rate = search.max_turnover_rate
+        angle_of_5 = search.angle_of_5
+        angle_of_10 = search.angle_of_10
+        angle_of_20 = search.angle_of_20
+        angle_of_30 = search.angle_of_30
         if five_days_mean is None or ten_days_mean is None:
             continue
         if stock_low < five_days_mean:
@@ -482,7 +491,7 @@ def get_stock_price():
         result.append(
             RealInfo(search.code, search.name, stock_price, stock_change, limit_circ_mv, free_circ_mv, is_low_ma5,
                      is_low_ma10, search.start_date, search.end_date,
-                     search.concept, max_turnover_rate))
+                     search.concept, max_turnover_rate, angle_of_5, angle_of_10, angle_of_20, angle_of_30))
 
     if result:
         return jsonify([{
@@ -498,7 +507,12 @@ def get_stock_price():
             'bullish_start_date': record.start_date,
             'bullish_end_date': record.end_date,
             'concept': record.concept,
-            'max_turnover_rate': record.max_turnover_rate
+            'max_turnover_rate': record.max_turnover_rate,
+            'angle_of_5': record.angle_of_5,
+            'angle_of_10': record.angle_of_10,
+            'angle_of_20': record.angle_of_20,
+            'angle_of_30': record.angle_of_30,
+
         } for record in result]), 200
     else:
         return jsonify({'error': 'No records found for this date'}), 404

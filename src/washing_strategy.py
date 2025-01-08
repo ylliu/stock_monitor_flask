@@ -25,7 +25,7 @@ def normalize(value, max_value):
 
 class RealInfo:
     def __init__(self, code, name, price, change, limit_circ_mv, free_circ_mv, is_low_ma5, is_low_ma10, start_date,
-                 end_date, concept, max_turnover_rate):
+                 end_date, concept, max_turnover_rate, angle_of_5, angle_of_10, angle_of_20, angle_of_30):
         self.code = code
         self.name = name
         self.price = price
@@ -38,11 +38,15 @@ class RealInfo:
         self.end_date = end_date
         self.concept = concept
         self.max_turnover_rate = max_turnover_rate
+        self.angle_of_5 = angle_of_5
+        self.angle_of_10 = angle_of_10
+        self.angle_of_20 = angle_of_20
+        self.angle_of_30 = angle_of_30
 
 
 class SearchResult:
     def __init__(self, code, name, count, start_date, end_date, limit_circ_mv, free_circ_mv,
-                 concept, max_turnover_rate):
+                 concept, max_turnover_rate, angle_of_5, angle_of_10, angle_of_20, angle_of_30):
         self.code = code
         self.name = name
         self.count = count
@@ -52,6 +56,10 @@ class SearchResult:
         self.free_circ_mv = free_circ_mv
         self.concept = concept
         self.max_turnover_rate = max_turnover_rate
+        self.angle_of_5 = angle_of_5
+        self.angle_of_10 = angle_of_10
+        self.angle_of_20 = angle_of_20
+        self.angle_of_30 = angle_of_30
 
     def __eq__(self, other):
         if not isinstance(other, SearchResult):
@@ -151,9 +159,13 @@ class WashingStrategy:
                 return None
         if limit_circ_mv is None or free_circ_mv is None:
             return None
-        max_two_high_price = max(self.daily_lines[1].high, self.daily_lines[2].high)
-        min_two_low_price = min(self.daily_lines[1].low, self.daily_lines[2].low)
-        average_pct = round(((max_two_high_price - min_two_low_price) / previous_daily_line.close * 100) / 2, 2)
+        pct1 = (self.daily_lines[1].high - self.daily_lines[1].low) / previous_daily_line.close * 100
+        pct2 = (self.daily_lines[2].high - self.daily_lines[2].low) / previous_daily_line.close * 100
+        average_pct = round((pct1 + pct2) / 2, 2)
+        if self.daily_lines[3].is_positive():
+            pct3 = (self.daily_lines[3].high - self.daily_lines[3].low) / previous_daily_line.close * 100
+            average_pct = round((pct1 + pct2 + pct3) / 3, 2)
+
         # print(average_pct)
         if average_pct < self.config.positive_average_pct:
             return None
@@ -182,8 +194,15 @@ class WashingStrategy:
 
         # concept = None
         name = self.data_interface.get_name(day.code)
+        angle_of_5 = TushareInterface().get_slope_of_days(day.code, self.end_date, 5)
+        angle_of_10 = TushareInterface().get_slope_of_days(day.code, self.end_date, 10)
+        angle_of_20 = TushareInterface().get_slope_of_days(day.code, self.end_date, 20)
+        angle_of_30 = TushareInterface().get_slope_of_days(day.code, self.end_date, 30)
+        print(angle_of_30)
+
         searchResult = SearchResult(day.code, name, count, start_date,
-                                    end_date, limit_circ_mv, free_circ_mv, concept, max_turnover_rate)
+                                    end_date, limit_circ_mv, free_circ_mv, concept, max_turnover_rate,
+                                    angle_of_5, angle_of_10, angle_of_20, angle_of_30)
         return searchResult
 
     def save_to_xlsx(self, found_stocks, end_date):

@@ -38,3 +38,10 @@ class TestTushareInterface(TestCase):
         tushare_interface = TushareInterface()
         df = tushare_interface.get_realtime_info('300001.SZ,300002.SZ')
         print(df)
+
+
+class TestTushareInterface(TestCase):
+    def test_get_slope_of_days(self):
+        tushare_interface = TushareInterface()
+        slope_5 = tushare_interface.get_slope_of_days('600789.SH', '20250107', 5)
+        self.assertEqual(-61.15, slope_5)
