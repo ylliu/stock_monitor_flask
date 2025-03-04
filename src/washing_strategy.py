@@ -200,6 +200,9 @@ class WashingStrategy:
         angle_of_30 = TushareInterface().get_slope_of_days(day.code, self.end_date, 30)
         print(angle_of_30)
 
+        is_margined = TushareInterface().is_margin_stock(day.code, self.end_date)
+        if self.config.is_margin_stock and not is_margined:
+            return None
         searchResult = SearchResult(day.code, name, count, start_date,
                                     end_date, limit_circ_mv, free_circ_mv, concept, max_turnover_rate,
                                     angle_of_5, angle_of_10, angle_of_20, angle_of_30)

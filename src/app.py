@@ -32,6 +32,7 @@ class StockConfig(db.Model):
     ma10_ratio = db.Column(db.Float, nullable=False)
     days_to_ma10 = db.Column(db.Integer, nullable=False)
     min_positive_days = db.Column(db.Integer, nullable=False)
+    is_margin_stock = db.Column(db.Boolean, nullable=False)
 
 
 class StockMonitorRecord(db.Model):
@@ -59,7 +60,8 @@ def stock_config():
                 'second_candle_new_high_days': config.second_candle_new_high_days,
                 'ma10_ratio': config.ma10_ratio,
                 'days_to_ma10': config.days_to_ma10,
-                'min_positive_days': config.min_positive_days
+                'min_positive_days': config.min_positive_days,
+                'is_margin_stock': config.is_margin_stock
             })
         else:
             return jsonify({'error': 'No configuration found'}), 404
@@ -75,7 +77,9 @@ def stock_config():
             second_candle_new_high_days=data['second_candle_new_high_days'],
             ma10_ratio=data['ma10_ratio'],
             days_to_ma10=data['days_to_ma10'],
-            min_positive_days=data['min_positive_days']
+            min_positive_days=data['min_positive_days'],
+            is_margin_stock=data['is_margin_stock']
+
         )
         db.session.add(config)
         db.session.commit()

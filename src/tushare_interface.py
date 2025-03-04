@@ -641,3 +641,16 @@ class TushareInterface(DataInterfaceBase):
         angle_deg = round(math.degrees(angle_rad), 2)  # 转换为角度，保留两位小数
 
         return angle_deg
+
+    def is_margin_stock(self, code, trade_date):
+        pro = ts.pro_api()
+        for attempt in range(self.max_retries):
+            try:
+                df = pro.margin_detail(ts_code=code, trade_date=trade_date)
+                print(df)
+                if len(df) > 0:
+                    return True
+                return False
+            except Exception as e:
+                print(f"发生异常: {e}")
+                atime.sleep(1)

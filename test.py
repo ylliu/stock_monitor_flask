@@ -48,6 +48,7 @@ class StockChinextConfig(db.Model):
     ma10_trigger = db.Column(db.Boolean, nullable=False)
     two_positive_pct_avg = db.Column(db.Integer, nullable=False)
     min_positive_days = db.Column(db.Integer, nullable=False)
+    is_margin_stock = db.Column(db.Boolean, nullable=False)
 
 
 class StockMainConfig(db.Model):
@@ -64,6 +65,7 @@ class StockMainConfig(db.Model):
     ma10_trigger = db.Column(db.Boolean, nullable=False)
     two_positive_pct_avg = db.Column(db.Float, nullable=False)
     min_positive_days = db.Column(db.Integer, nullable=False)
+    is_margin_stock = db.Column(db.Boolean, nullable=False)
 
 
 class StockMonitorRecord(db.Model):
@@ -98,7 +100,8 @@ def stock_config(board):
                 'ma5_trigger': config.ma5_trigger,
                 'ma10_trigger': config.ma10_trigger,
                 'two_positive_pct_avg': config.two_positive_pct_avg,
-                'min_positive_days': config.min_positive_days
+                'min_positive_days': config.min_positive_days,
+                'is_margin_stock': config.is_margin_stock
             })
         else:
             return jsonify({'error': 'No configuration found'}), 404
@@ -118,7 +121,8 @@ def stock_config(board):
                 ma5_trigger=data['ma5_trigger'],
                 ma10_trigger=data['ma10_trigger'],
                 two_positive_pct_avg=data['two_positive_pct_avg'],
-                min_positive_days=data['min_positive_days']
+                min_positive_days=data['min_positive_days'],
+                is_margin_stock=data['is_margin_stock']
             )
         elif board == chi_next:
             config = StockChinextConfig(
@@ -133,7 +137,8 @@ def stock_config(board):
                 ma5_trigger=data['ma5_trigger'],
                 ma10_trigger=data['ma10_trigger'],
                 two_positive_pct_avg=data['two_positive_pct_avg'],
-                min_positive_days=data['min_positive_days']
+                min_positive_days=data['min_positive_days'],
+                is_margin_stock=data['is_margin_stock']
             )
 
         db.session.add(config)
