@@ -205,14 +205,16 @@ def get_monitor_records(date, board):
     positive_to_ten_mean_periods = config.days_to_ma10
     ten_mean_scaling_factor = config.ma10_ratio
     min_positive_days = config.min_positive_days
+    is_margin_stock = config.is_margin_stock
     strategy_config = WashingStrategyConfig(back_days, end_date, local_running, volume_rate, positive_average_pct,
                                             second_positive_high_days, before_positive_limit_circ_mv_min,
                                             before_positive_limit_circ_mv_max, before_positive_free_circ_mv_min,
                                             before_positive_free_circ_mv_max,
-                                            positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days)
+                                            positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days,
+                                            is_margin_stock)
     data_interface = TushareInterface()
     stock_list = data_interface.get_all_stocks(board_name)
-    # stock_list = ['601226.SH']
+    # stock_list = ['300328.SZ','300607.SZ']
     last_code = stock_list[-1]
     first_code = stock_list[0]
     if local_running == 1:

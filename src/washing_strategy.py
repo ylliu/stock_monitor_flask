@@ -80,7 +80,7 @@ class WashingStrategyConfig:
     def __init__(self, back_days, end_date, enable_local_run,
                  volume_rate, positive_average_pct, second_positive_high_days, before_positive_limit_circ_mv_min,
                  before_positive_limit_circ_mv_max, before_positive_free_circ_mv_min, before_positive_free_circ_mv_max,
-                 positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days):
+                 positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days, is_margin_stock):
         self.back_days = back_days
         self.end_date = end_date
         self.enable_local_run = enable_local_run
@@ -94,6 +94,7 @@ class WashingStrategyConfig:
         self.positive_to_ten_mean_periods = positive_to_ten_mean_periods
         self.ten_mean_scaling_factor = ten_mean_scaling_factor
         self.min_positive_days = min_positive_days
+        self.is_margin_stock = is_margin_stock
 
 
 class WashingStrategy:
@@ -200,7 +201,7 @@ class WashingStrategy:
         angle_of_30 = TushareInterface().get_slope_of_days(day.code, self.end_date, 30)
         print(angle_of_30)
 
-        is_margined = TushareInterface().is_margin_stock(day.code, self.end_date)
+        is_margined = TushareInterface().is_margin_stock(day.code, previous_daily_line.trade_date[:10].replace("-", ""))
         if self.config.is_margin_stock and not is_margined:
             return None
         searchResult = SearchResult(day.code, name, count, start_date,
