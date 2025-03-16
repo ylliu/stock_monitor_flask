@@ -148,6 +148,9 @@ class WashingStrategy:
 
         if count < self.config.min_positive_days:
             return None
+
+
+
         limit_circ_mv = self.data_interface.get_circ_mv3(day.code, previous_daily_line.trade_date[:10].replace("-", ""))
         if limit_circ_mv is not None:
             if limit_circ_mv > self.config.before_positive_limit_circ_mv_max or limit_circ_mv < self.config.before_positive_limit_circ_mv_min:

@@ -34,6 +34,25 @@ main = "main"
 chi_next = "chiNext"
 
 
+class StockConfig(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    first_day_vol_ratio = db.Column(db.Float, nullable=False)
+    free_float_value_range_min = db.Column(db.Float, nullable=False)
+    free_float_value_range_max = db.Column(db.Float, nullable=False)
+    circulation_value_range_min = db.Column(db.Float, nullable=False)
+    circulation_value_range_max = db.Column(db.Float, nullable=False)
+    second_candle_new_high_days = db.Column(db.Integer, nullable=False)
+    ma10_ratio = db.Column(db.Float, nullable=False)
+    days_to_ma10 = db.Column(db.Integer, nullable=False)
+    ma5_trigger = db.Column(db.Boolean, nullable=False)
+    ma10_trigger = db.Column(db.Boolean, nullable=False)
+    two_positive_pct_avg = db.Column(db.Integer, nullable=False)
+    min_positive_days = db.Column(db.Integer, nullable=False)
+    is_margin_stock = db.Column(db.Boolean, nullable=False)
+    is_applied = db.Column(db.Boolean, nullable=False, default=False)  # 新增字段，默认值为 False
+    board_type = db.Column(db.String, nullable=False)  # 新增字段，默认值为 False
+
+
 class StockChinextConfig(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_day_vol_ratio = db.Column(db.Float, nullable=False)
@@ -49,6 +68,7 @@ class StockChinextConfig(db.Model):
     two_positive_pct_avg = db.Column(db.Integer, nullable=False)
     min_positive_days = db.Column(db.Integer, nullable=False)
     is_margin_stock = db.Column(db.Boolean, nullable=False)
+    is_applied = db.Column(db.Boolean, nullable=False, default=False)  # 新增字段，默认值为 False
 
 
 class StockMainConfig(db.Model):
@@ -66,6 +86,7 @@ class StockMainConfig(db.Model):
     two_positive_pct_avg = db.Column(db.Float, nullable=False)
     min_positive_days = db.Column(db.Integer, nullable=False)
     is_margin_stock = db.Column(db.Boolean, nullable=False)
+    is_applied = db.Column(db.Boolean, nullable=False, default=False)  # 新增字段，默认值为 False
 
 
 class StockMonitorRecord(db.Model):
@@ -78,17 +99,18 @@ class StockMonitorRecord(db.Model):
     concept = db.Column(db.String(200))
 
 
-@app.route('/config/<board>', methods=['GET', 'POST'])
-def stock_config(board):
+@app.route('/config/<board>/<int:id>', methods=['GET', 'POST'])
+def stock_config(board, id):
     if request.method == 'GET':
-        if board == main:
-            config = StockMainConfig.query.order_by(StockMainConfig.id.desc()).first()
-            print(config)
-        elif board == chi_next:
-            config = StockChinextConfig.query.order_by(StockChinextConfig.id.desc()).first()
-            print(config)
+        # Fetch the configuration by id
+        # if board == 'main':
+        #     config = StockMainConfig.query.get(id)
+        # elif board == 'chiNext':
+        #     config = StockChinextConfig.query.get(id)
+        config = StockConfig.query.get(id)
         if config:
             return jsonify({
+                'id': config.id,
                 'first_day_vol_ratio': config.first_day_vol_ratio,
                 'free_float_value_range_min': config.free_float_value_range_min,
                 'free_float_value_range_max': config.free_float_value_range_max,
@@ -101,15 +123,19 @@ def stock_config(board):
                 'ma10_trigger': config.ma10_trigger,
                 'two_positive_pct_avg': config.two_positive_pct_avg,
                 'min_positive_days': config.min_positive_days,
-                'is_margin_stock': config.is_margin_stock
+                'is_margin_stock': config.is_margin_stock,
+                'board_type': config.board_type
             })
         else:
             return jsonify({'error': 'No configuration found'}), 404
+
     elif request.method == 'POST':
+        # Check if the id is -1 for creating a new config
         data = request.get_json()
         print("post:", data)
-        if board == main:
-            config = StockMainConfig(
+        print('id:', id)
+        if id == 999999:  # Create a new configuration
+            new_config = StockConfig(
                 first_day_vol_ratio=data['first_day_vol_ratio'],
                 free_float_value_range_min=data['free_float_value_range_min'],
                 free_float_value_range_max=data['free_float_value_range_max'],
@@ -122,28 +148,98 @@ def stock_config(board):
                 ma10_trigger=data['ma10_trigger'],
                 two_positive_pct_avg=data['two_positive_pct_avg'],
                 min_positive_days=data['min_positive_days'],
-                is_margin_stock=data['is_margin_stock']
+                is_margin_stock=data['is_margin_stock'],
+                board_type=board
             )
-        elif board == chi_next:
-            config = StockChinextConfig(
-                first_day_vol_ratio=data['first_day_vol_ratio'],
-                free_float_value_range_min=data['free_float_value_range_min'],
-                free_float_value_range_max=data['free_float_value_range_max'],
-                circulation_value_range_min=data['circulation_value_range_min'],
-                circulation_value_range_max=data['circulation_value_range_max'],
-                second_candle_new_high_days=data['second_candle_new_high_days'],
-                ma10_ratio=data['ma10_ratio'],
-                days_to_ma10=data['days_to_ma10'],
-                ma5_trigger=data['ma5_trigger'],
-                ma10_trigger=data['ma10_trigger'],
-                two_positive_pct_avg=data['two_positive_pct_avg'],
-                min_positive_days=data['min_positive_days'],
-                is_margin_stock=data['is_margin_stock']
-            )
+            db.session.add(new_config)
+            db.session.commit()
+            return jsonify({'id': new_config.id}), 201  # Respond with the newly created config id
+        else:
+            # Update the existing configuration with the given id
+            config = StockConfig.query.filter_by(board_type=board, is_applied=True).first()
+            config = StockConfig.query.get(config.id)
+            if config:
+                config.first_day_vol_ratio = data['first_day_vol_ratio']
+                config.free_float_value_range_min = data['free_float_value_range_min']
+                config.free_float_value_range_max = data['free_float_value_range_max']
+                config.circulation_value_range_min = data['circulation_value_range_min']
+                config.circulation_value_range_max = data['circulation_value_range_max']
+                config.second_candle_new_high_days = data['second_candle_new_high_days']
+                config.ma10_ratio = data['ma10_ratio']
+                config.days_to_ma10 = data['days_to_ma10']
+                config.ma5_trigger = data['ma5_trigger']
+                config.ma10_trigger = data['ma10_trigger']
+                config.two_positive_pct_avg = data['two_positive_pct_avg']
+                config.min_positive_days = data['min_positive_days']
+                config.is_margin_stock = data['is_margin_stock']
+                config.board_type = data['board_type']
+                db.session.commit()
+                return jsonify(data), 200
+            else:
+                return jsonify({'error': 'Configuration not found'}), 404
 
-        db.session.add(config)
+
+@app.route('/config/id/<board>', methods=['GET'])
+def stock_config_id(board):
+    # 根据传入的 board 参数选择不同的模型
+    # 获取应用的配置
+    config = StockConfig.query.filter_by(board_type=board, is_applied=True).first()
+
+    # 检查是否找到符合条件的记录
+    if config:
+        print('config_id:', config.id)
+        return jsonify({'config_id': config.id}), 200  # 只返回 config_id
+    else:
+        return jsonify({'error': 'No applied configuration found'}), 404
+
+
+@app.route('/config/list', methods=['GET'])
+def get_all_configs():
+    # 查询所有的配置，按 board_type 分类
+    configs = StockConfig.query.all()
+
+    # 根据 board_type 分类配置
+    config_list = []
+    for config in configs:
+        config_list.append({
+            "id": config.id,
+            "board": config.board_type,  # 使用 board_type 字段区分不同板块
+            "is_applied": config.is_applied
+        })
+
+    return jsonify(config_list)
+
+
+# 删除配置
+@app.route('/config/<string:board>/<int:id>', methods=['DELETE'])
+def delete_config(board, id):
+    # 根据 board 参数选择不同的配置类型
+    config_to_delete = StockConfig.query.filter_by(id=id, board_type=board).first()
+
+    if config_to_delete:
+        db.session.delete(config_to_delete)
         db.session.commit()
-        return jsonify(data), 201
+        return jsonify({"message": f"Configuration with ID {id} deleted from {board} board."}), 200
+    else:
+        return jsonify({"error": "Configuration not found or invalid board type."}), 400
+
+
+@app.route('/config/apply/<string:board>/<int:id>', methods=['POST'])
+def apply_config(board, id):
+    # 根据 board 参数选择对应的配置类型
+    config_to_apply = StockConfig.query.filter_by(id=id, board_type=board).first()
+
+    if not config_to_apply:
+        return jsonify({"error": "Configuration not found."}), 404
+
+    # 先取消所有对应板块的方案应用状态
+    StockConfig.query.filter_by(board_type=board).update({StockConfig.is_applied: False})
+
+    # 应用选定的配置
+    config_to_apply.is_applied = True
+    db.session.commit()
+
+    return jsonify({"message": f"Configuration {id} applied on {board} board."}), 200
 
 
 def monitor_stock():
@@ -186,12 +282,15 @@ def get_monitor_records(date, board):
     if is_updating:
         return jsonify({'error': 'Is updating data please wait'}), 201
     print(date)
-    if board == main:
-        config = StockMainConfig.query.order_by(StockMainConfig.id.desc()).first()
+    if board == 'main':
+        # 查找 is_applied 为 True 的配置
+        config = StockMainConfig.query.filter_by(is_applied=True).order_by(StockMainConfig.id.desc()).first()
         board_name = "主板"
-    elif board == chi_next:
-        config = StockChinextConfig.query.order_by(StockChinextConfig.id.desc()).first()
+    elif board == 'chiNext':
+        # 查找 is_applied 为 True 的配置
+        config = StockChinextConfig.query.filter_by(is_applied=True).order_by(StockChinextConfig.id.desc()).first()
         board_name = "创业板"
+    print(config)
     back_days = config.days_to_ma10 + 5
     end_date = date
     local_running = 1
@@ -348,82 +447,6 @@ def verity_code(date, board, code):
         } for record in search_results]), 200
     else:
         return jsonify({'error': 'No records found for this date'}), 404
-
-
-#
-# @app.route('/monitor_records/zb/<date>', methods=['GET'])
-# def get_monitor_records(date):
-#     if is_updating:
-#         return jsonify({'error': 'Is updating data please wait'}), 201
-#     print(date)
-#     config = StockZBConfig.query.order_by(StockZBConfig.id.desc()).first()
-#     back_days = 15
-#     end_date = date
-#     local_running = 1
-#     volume_rate = config.first_day_vol_ratio
-#     positive_average_pct = 11
-#     second_positive_high_days = config.second_candle_new_high_days
-#     before_positive_limit_circ_mv_min = config.free_float_value_range_min
-#     before_positive_limit_circ_mv_max = config.free_float_value_range_max
-#     before_positive_free_circ_mv_min = config.circulation_value_range_min
-#     before_positive_free_circ_mv_max = config.circulation_value_range_max
-#     positive_to_ten_mean_periods = config.days_to_ma10
-#     ten_mean_scaling_factor = config.ma10_ratio
-#     strategy_config = WashingStrategyConfig(back_days, end_date, local_running, volume_rate, positive_average_pct,
-#                                             second_positive_high_days, before_positive_limit_circ_mv_min,
-#                                             before_positive_limit_circ_mv_max, before_positive_free_circ_mv_min,
-#                                             before_positive_free_circ_mv_max,
-#                                             positive_to_ten_mean_periods, ten_mean_scaling_factor)
-#     data_interface = TushareInterface()
-#     stock_list = data_interface.get_all_stocks('主板')
-#     # stock_list = ['300044.SZ']
-#     last_code = stock_list[-1]
-#     first_code = stock_list[0]
-#     if local_running == 1:
-#         # data_interface.update_local_csv_data_fast(stock_list)
-#         if not data_interface.is_data_updated(last_code) or not data_interface.is_data_updated(first_code):
-#             csv_date = data_interface.find_last_date_in_csv(f'src/data/{last_code}_daily_data.csv')  # 0710
-#             now = datetime.now()
-#             # 获取当前小时数（24小时制）
-#             current_hour = now.hour
-#             pre_trade_data = data_interface.find_pre_data_publish_date(data_interface.get_today_date(), current_hour)
-#             # if csv_date == pre_trade_data:
-#             #     data_interface.update_local_csv_data_fast(stock_list)
-#             data_interface.update_csv_data(stock_list, 300)
-#
-#     local_data_interface = LocalCsvInterface()
-#     local_data_interface.load_csv_data(stock_list)
-#     washing_strategy = WashingStrategy(stock_list, end_date, back_days, 1, local_data_interface, strategy_config)
-#     washing_strategy.update_realtime_data(end_date)
-#     # result = SearchResult('300001.sz', 'name', 10, '2024-10-28',
-#     #                       '2024-10-29', '2024-10-28', '2024-10-28',
-#     #                       30, 'concept')
-#     # search_results = []
-#     # search_results.append(result)
-#     search_results = washing_strategy.find()
-#     washing_strategy.save_to_xlsx(search_results, end_date)
-#
-#     search_results_data.clear()
-#     search_results_data.extend(search_results)
-#     print(search_results)
-#     # records = StockMonitorRecord.query.all()
-#     # print(records)
-#     if search_results:
-#         return jsonify([{
-#             'id': 'id',
-#             'time': record.end_date,
-#             'stock_code': record.code,
-#             'stock_name': record.name,
-#             'below_5_day_line': False,
-#             'below_10_day_line': False,
-#             'limit_circ_mv': record.limit_circ_mv,
-#             'free_circ_mv': record.free_circ_mv,
-#             'bullish_start_date': record.start_date,
-#             'bullish_end_date': record.end_date,
-#             'concept': record.concept
-#         } for record in search_results]), 200
-#     else:
-#         return jsonify({'error': 'No records found for this date'}), 404
 
 
 @app.route('/stock_K_info/<stock_code>', methods=['GET'])
