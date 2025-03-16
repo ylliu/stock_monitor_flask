@@ -80,7 +80,8 @@ class WashingStrategyConfig:
     def __init__(self, back_days, end_date, enable_local_run,
                  volume_rate, positive_average_pct, second_positive_high_days, before_positive_limit_circ_mv_min,
                  before_positive_limit_circ_mv_max, before_positive_free_circ_mv_min, before_positive_free_circ_mv_max,
-                 positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days, is_margin_stock):
+                 positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days, is_margin_stock,
+                 max_volume_high_days, five_days_max_up_pct, ten_days_max_up_pct, is_second_day_price_up):
         self.back_days = back_days
         self.end_date = end_date
         self.enable_local_run = enable_local_run
@@ -95,6 +96,10 @@ class WashingStrategyConfig:
         self.ten_mean_scaling_factor = ten_mean_scaling_factor
         self.min_positive_days = min_positive_days
         self.is_margin_stock = is_margin_stock
+        self.max_volume_high_days = max_volume_high_days
+        self.five_days_max_up_pct = five_days_max_up_pct
+        self.ten_days_max_up_pct = ten_days_max_up_pct
+        self.is_second_day_price_up = is_second_day_price_up
 
 
 class WashingStrategy:
@@ -132,6 +137,18 @@ class WashingStrategy:
         for index_pos in range(1, len(self.daily_lines)):
             day = self.daily_lines[index_pos]
             first_positive_day = self.daily_lines[1]
+            # 第二天不需要上涨的配置
+            if index_pos == 2 and not self.config.is_second_day_price_up:
+                if first_positive_day.is_volume_increased(previous_daily_line.vol, self.config.volume_rate):
+                    count += 1
+                    min_low_price = min(min_low_price, day.low)
+                    max_high_price = max(max_high_price, day.high)
+                    max_turnover_rate = max(max_turnover_rate, day.turnover_rate)
+                    max_vol = max(max_vol, day.vol)
+                    if day.max_pct_change > max_pct_change:
+                        up_shadow_pct_of_max_pct_change_day = day.up_shadow_pct
+                    continue
+
             if first_positive_day.is_volume_increased(previous_daily_line.vol, self.config.volume_rate) \
                     and day.is_higher_than_yesterday_close_price(self.daily_lines[index_pos - 1].close):
                 count += 1
@@ -148,8 +165,6 @@ class WashingStrategy:
 
         if count < self.config.min_positive_days:
             return None
-
-
 
         limit_circ_mv = self.data_interface.get_circ_mv3(day.code, previous_daily_line.trade_date[:10].replace("-", ""))
         if limit_circ_mv is not None:
@@ -188,6 +203,23 @@ class WashingStrategy:
         if not is_max_high:
             return None
 
+        # 最大的成交量是xx天内的新高
+        is_vol_max_high = self.data_interface.is_vol_break_days_high(day.code,
+                                                                     end_date, self.config.max_volume_high_days,
+                                                                     max_vol)
+        if not is_vol_max_high:
+            return None
+
+        # 5天内涨幅不超过xx
+        is_five_days_not_more_than = self.data_interface.is_pct_up_not_more_than(day.code, end_date, 5,
+                                                                                 self.config.five_days_max_up_pct)
+        if not is_five_days_not_more_than:
+            return None
+        # 10天内涨幅不超过xx
+        is_ten_days_not_more_than = self.data_interface.is_pct_up_not_more_than(day.code, end_date, 10,
+                                                                                self.config.ten_days_max_up_pct)
+        if not is_ten_days_not_more_than:
+            return None
         for neg_index in range(index_pos, len(self.daily_lines)):
             if self.daily_lines[neg_index].is_negative():
                 if self.daily_lines[neg_index].vol > max_vol:

@@ -108,7 +108,7 @@ class LocalCsvInterface(DataInterfaceBase):
             daily_lines_realtime = daily_line_value[code]
             date = str(datetime.strptime(daily_lines_realtime.trade_date, "%Y%m%d"))
 
-            daily_lines_realtime.trade_date =date
+            daily_lines_realtime.trade_date = date
             # daily_line_real = DailyLine(daily_lines_realtime["DATE"], daily_lines_realtime["OPEN"],
             #                             daily_lines_realtime["PRICE"], daily_lines_realtime["HIGH"],
             #                             daily_lines_realtime["LOW"],
@@ -355,3 +355,25 @@ class LocalCsvInterface(DataInterfaceBase):
         ts_code_list = df['close_qfq'].to_list()
         return ts_code_list[-1] == max(ts_code_list)
         # return ts_code_list
+
+    def is_vol_break_days_high(self, code, end_date, days, max_vol):
+        df = self.data_between_from_csv(code, end_date, days)
+        # print("vol_df",df)
+        ts_code_list = df['vol'].to_list()
+        return max_vol == max(ts_code_list)
+        # return ts_code_list
+
+    def is_pct_up_not_more_than(self, code, end_date, days, max_pct):
+        df = self.data_between_from_csv(code, end_date, days)
+
+        # 确保数据足够
+        if len(df) < days:
+            return False  # 数据不足，无法计算涨幅
+
+        # 计算第5天相对于第1天的涨幅
+        start_price = df.iloc[0]['close_qfq']  # 第1天的收盘价
+        end_price = df.iloc[-1]['close_qfq']  # 第5天的收盘价
+
+        pct_change = (end_price - start_price) / start_price * 100  # 计算涨幅（%）
+
+        return pct_change <= max_pct

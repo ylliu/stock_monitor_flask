@@ -9,6 +9,7 @@ import pandas as pd
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 from src.local_csv_interface import LocalCsvInterface
 from src.shared_data import search_results_data
@@ -28,6 +29,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 关闭对模型修改的
 db = SQLAlchemy(app)
 CORS(app)  # 添加这一行来启用 CORS 支持
 CORS(app, resources={r"/*": {"origins": "*"}})
+migrate = Migrate(app, db)  # 绑定 Flask-Migrate
 search_results = []
 is_updating = False
 main = "main"
@@ -51,42 +53,20 @@ class StockConfig(db.Model):
     is_margin_stock = db.Column(db.Boolean, nullable=False)
     is_applied = db.Column(db.Boolean, nullable=False, default=False)  # 新增字段，默认值为 False
     board_type = db.Column(db.String, nullable=False)  # 新增字段，默认值为 False
+    max_volume_high_days = db.Column(db.Integer, nullable=False)
+    five_days_max_up_pct = db.Column(db.Float, nullable=False)
+    ten_days_max_up_pct = db.Column(db.Float, nullable=False)
+    is_second_day_price_up = db.Column(db.Boolean, nullable=False, default=True)
 
-
-class StockChinextConfig(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    first_day_vol_ratio = db.Column(db.Float, nullable=False)
-    free_float_value_range_min = db.Column(db.Float, nullable=False)
-    free_float_value_range_max = db.Column(db.Float, nullable=False)
-    circulation_value_range_min = db.Column(db.Float, nullable=False)
-    circulation_value_range_max = db.Column(db.Float, nullable=False)
-    second_candle_new_high_days = db.Column(db.Integer, nullable=False)
-    ma10_ratio = db.Column(db.Float, nullable=False)
-    days_to_ma10 = db.Column(db.Integer, nullable=False)
-    ma5_trigger = db.Column(db.Boolean, nullable=False)
-    ma10_trigger = db.Column(db.Boolean, nullable=False)
-    two_positive_pct_avg = db.Column(db.Integer, nullable=False)
-    min_positive_days = db.Column(db.Integer, nullable=False)
-    is_margin_stock = db.Column(db.Boolean, nullable=False)
-    is_applied = db.Column(db.Boolean, nullable=False, default=False)  # 新增字段，默认值为 False
-
-
-class StockMainConfig(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    first_day_vol_ratio = db.Column(db.Float, nullable=False)
-    free_float_value_range_min = db.Column(db.Float, nullable=False)
-    free_float_value_range_max = db.Column(db.Float, nullable=False)
-    circulation_value_range_min = db.Column(db.Float, nullable=False)
-    circulation_value_range_max = db.Column(db.Float, nullable=False)
-    second_candle_new_high_days = db.Column(db.Integer, nullable=False)
-    ma10_ratio = db.Column(db.Float, nullable=False)
-    days_to_ma10 = db.Column(db.Integer, nullable=False)
-    ma5_trigger = db.Column(db.Boolean, nullable=False)
-    ma10_trigger = db.Column(db.Boolean, nullable=False)
-    two_positive_pct_avg = db.Column(db.Float, nullable=False)
-    min_positive_days = db.Column(db.Integer, nullable=False)
-    is_margin_stock = db.Column(db.Boolean, nullable=False)
-    is_applied = db.Column(db.Boolean, nullable=False, default=False)  # 新增字段，默认值为 False
+    def __repr__(self):
+        return (f"<StockConfig(id={self.id}, board_type={self.board_type}, is_applied={self.is_applied}, "
+                f"first_day_vol_ratio={self.first_day_vol_ratio}, "
+                f"free_float_value_range=({self.free_float_value_range_min}, {self.free_float_value_range_max}), "
+                f"circulation_value_range=({self.circulation_value_range_min}, {self.circulation_value_range_max}), "
+                f"second_candle_new_high_days={self.second_candle_new_high_days}, "
+                f"ma10_ratio={self.ma10_ratio}, days_to_ma10={self.days_to_ma10}, "
+                f"two_positive_pct_avg={self.two_positive_pct_avg}, min_positive_days={self.min_positive_days}, "
+                f"is_margin_stock={self.is_margin_stock})>")
 
 
 class StockMonitorRecord(db.Model):
@@ -124,7 +104,11 @@ def stock_config(board, id):
                 'two_positive_pct_avg': config.two_positive_pct_avg,
                 'min_positive_days': config.min_positive_days,
                 'is_margin_stock': config.is_margin_stock,
-                'board_type': config.board_type
+                'board_type': config.board_type,
+                'max_volume_high_days': config.max_volume_high_days,
+                'five_days_max_up_pct': config.five_days_max_up_pct,
+                'ten_days_max_up_pct': config.ten_days_max_up_pct,
+                'is_second_day_price_up': config.is_second_day_price_up
             })
         else:
             return jsonify({'error': 'No configuration found'}), 404
@@ -149,7 +133,12 @@ def stock_config(board, id):
                 two_positive_pct_avg=data['two_positive_pct_avg'],
                 min_positive_days=data['min_positive_days'],
                 is_margin_stock=data['is_margin_stock'],
-                board_type=board
+                board_type=board,
+                max_volume_high_days=data['max_volume_high_days'],
+                five_days_max_up_pct=data['five_days_max_up_pct'],
+                ten_days_max_up_pct=data['ten_days_max_up_pct'],
+                is_second_day_price_up=data['is_second_day_price_up']
+
             )
             db.session.add(new_config)
             db.session.commit()
@@ -173,6 +162,10 @@ def stock_config(board, id):
                 config.min_positive_days = data['min_positive_days']
                 config.is_margin_stock = data['is_margin_stock']
                 config.board_type = data['board_type']
+                config.max_volume_high_days = data['max_volume_high_days']
+                config.five_days_max_up_pct = data['five_days_max_up_pct']
+                config.ten_days_max_up_pct = data['ten_days_max_up_pct']
+                config.is_second_day_price_up = data['is_second_day_price_up']
                 db.session.commit()
                 return jsonify(data), 200
             else:
@@ -282,15 +275,15 @@ def get_monitor_records(date, board):
     if is_updating:
         return jsonify({'error': 'Is updating data please wait'}), 201
     print(date)
-    if board == 'main':
-        # 查找 is_applied 为 True 的配置
-        config = StockMainConfig.query.filter_by(is_applied=True).order_by(StockMainConfig.id.desc()).first()
-        board_name = "主板"
-    elif board == 'chiNext':
-        # 查找 is_applied 为 True 的配置
-        config = StockChinextConfig.query.filter_by(is_applied=True).order_by(StockChinextConfig.id.desc()).first()
-        board_name = "创业板"
+    # 查找 is_applied 为 True 的最新配置
+    config = StockConfig.query.filter_by(is_applied=True, board_type=board).order_by(StockConfig.id.desc()).first()
     print(config)
+    board_names = {
+        "main": "主板",
+        "chiNext": "创业板",
+        "sciNext": "科创板",
+    }
+    board_name = board_names.get(board, "未知板块")
     back_days = config.days_to_ma10 + 5
     end_date = date
     local_running = 1
@@ -305,15 +298,20 @@ def get_monitor_records(date, board):
     ten_mean_scaling_factor = config.ma10_ratio
     min_positive_days = config.min_positive_days
     is_margin_stock = config.is_margin_stock
+    max_volume_high_days = config.max_volume_high_days
+    five_days_max_up_pct = config.five_days_max_up_pct
+    ten_days_max_up_pct = config.ten_days_max_up_pct
+    is_second_day_price_up = config.is_second_day_price_up
     strategy_config = WashingStrategyConfig(back_days, end_date, local_running, volume_rate, positive_average_pct,
                                             second_positive_high_days, before_positive_limit_circ_mv_min,
                                             before_positive_limit_circ_mv_max, before_positive_free_circ_mv_min,
                                             before_positive_free_circ_mv_max,
                                             positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days,
-                                            is_margin_stock)
+                                            is_margin_stock, max_volume_high_days, five_days_max_up_pct,
+                                            ten_days_max_up_pct, is_second_day_price_up)
     data_interface = TushareInterface()
     stock_list = data_interface.get_all_stocks(board_name)
-    # stock_list = ['300328.SZ','300607.SZ']
+    stock_list = ['688160.SH']
     last_code = stock_list[-1]
     first_code = stock_list[0]
     if local_running == 1:
@@ -372,13 +370,9 @@ def get_monitor_records(date, board):
 def verity_code(date, board, code):
     if is_updating:
         return jsonify({'error': 'Is updating data please wait'}), 201
+
+    config = StockConfig.query.filter_by(is_applied=True, board_type=board).order_by(StockConfig.id.desc()).first()
     print(date)
-    if board == main:
-        config = StockMainConfig.query.order_by(StockMainConfig.id.desc()).first()
-        board_name = "主板"
-    elif board == chi_next:
-        config = StockChinextConfig.query.order_by(StockChinextConfig.id.desc()).first()
-        board_name = "创业板"
     back_days = config.days_to_ma10 + 5
     end_date = date
     local_running = 1

@@ -121,11 +121,11 @@ def start_monitor():
     return jsonify({"message": f"Started monitoring"}), 200
 
 
-with app.app_context():
-    db.drop_all()  # This will delete everything
-    print('11111')
-    db.create_all()
-    print('22222')
+# with app.app_context():
+#     db.drop_all()  # This will delete everything
+#     print('11111')
+#     db.create_all()
+#     print('22222')
 
 
 def create_tables():
