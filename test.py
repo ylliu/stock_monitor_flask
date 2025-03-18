@@ -598,12 +598,12 @@ def update_data():
 
 
 #
-# with app.app_context():
-#     db.drop_all()  # This will delete everything
-#     print('11111')
-#     db.create_all()
-#     print('22222')
-#     # get_monitor_records('2024-10-23')
+with app.app_context():
+    db.drop_all()  # This will delete everything
+    print('11111')
+    db.create_all()
+    print('22222')
+     # get_monitor_records('2024-10-23')
 
 
 # def create_tables():
