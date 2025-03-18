@@ -311,7 +311,7 @@ def get_monitor_records(date, board):
                                             ten_days_max_up_pct, is_second_day_price_up)
     data_interface = TushareInterface()
     stock_list = data_interface.get_all_stocks(board_name)
-    stock_list = ['688160.SH']
+    # stock_list = ['688160.SH']
     last_code = stock_list[-1]
     first_code = stock_list[0]
     if local_running == 1:
