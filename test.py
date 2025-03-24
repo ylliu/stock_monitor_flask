@@ -57,6 +57,7 @@ class StockConfig(db.Model):
     five_days_max_up_pct = db.Column(db.Float, nullable=False)
     ten_days_max_up_pct = db.Column(db.Float, nullable=False)
     is_second_day_price_up = db.Column(db.Boolean, nullable=False, default=True)
+    config_name = db.Column(db.String(255), nullable=False, default='default_value')
 
     def __repr__(self):
         return (f"<StockConfig(id={self.id}, board_type={self.board_type}, is_applied={self.is_applied}, "
@@ -108,7 +109,8 @@ def stock_config(board, id):
                 'max_volume_high_days': config.max_volume_high_days,
                 'five_days_max_up_pct': config.five_days_max_up_pct,
                 'ten_days_max_up_pct': config.ten_days_max_up_pct,
-                'is_second_day_price_up': config.is_second_day_price_up
+                'is_second_day_price_up': config.is_second_day_price_up,
+                'config_name': config.config_name
             })
         else:
             return jsonify({'error': 'No configuration found'}), 404
@@ -137,7 +139,8 @@ def stock_config(board, id):
                 max_volume_high_days=data['max_volume_high_days'],
                 five_days_max_up_pct=data['five_days_max_up_pct'],
                 ten_days_max_up_pct=data['ten_days_max_up_pct'],
-                is_second_day_price_up=data['is_second_day_price_up']
+                is_second_day_price_up=data['is_second_day_price_up'],
+                config_name=data['config_name']
 
             )
             db.session.add(new_config)
@@ -166,6 +169,7 @@ def stock_config(board, id):
                 config.five_days_max_up_pct = data['five_days_max_up_pct']
                 config.ten_days_max_up_pct = data['ten_days_max_up_pct']
                 config.is_second_day_price_up = data['is_second_day_price_up']
+                config.config_name = data['config_name']
                 db.session.commit()
                 return jsonify(data), 200
             else:
@@ -197,7 +201,8 @@ def get_all_configs():
         config_list.append({
             "id": config.id,
             "board": config.board_type,  # 使用 board_type 字段区分不同板块
-            "is_applied": config.is_applied
+            "is_applied": config.is_applied,
+            'config_name': config.config_name
         })
 
     return jsonify(config_list)
@@ -597,13 +602,13 @@ def update_data():
     local_data_interface.load_csv_data(stock_list)
 
 
-#
-# with app.app_context():
-#     db.drop_all()  # This will delete everything
-#     print('11111')
-#     db.create_all()
-#     print('22222')
-#     # get_monitor_records('2024-10-23')
+
+with app.app_context():
+    db.drop_all()  # This will delete everything
+    print('11111')
+    db.create_all()
+    print('22222')
+    # get_monitor_records('2024-10-23')
 
 
 # def create_tables():
