@@ -323,6 +323,7 @@ class TushareInterface(DataInterfaceBase):
             print('to_update', stock)
             for attempt in range(self.max_retries):
                 try:
+                    print(os.getcwd())
                     today = datetime.now().strftime('%Y%m%d')  # 直接格式化 datetime.now()
                     file_path = f'src/data/{stock}_daily_data.csv'
                     if os.path.exists((file_path)):

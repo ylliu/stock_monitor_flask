@@ -50,3 +50,7 @@ class TestTushareInterface(TestCase):
         self.assertEqual(True, res)
         res = tushare_interface.is_margin_stock('002979.SZ', '20250303')
         self.assertEqual(False, res)
+
+    def test_update_csv_data(self):
+        tushare_interface = TushareInterface()
+        tushare_interface.update_csv_data(['600556.SH'], 300)
