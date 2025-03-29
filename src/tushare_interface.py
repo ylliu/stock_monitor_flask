@@ -323,7 +323,7 @@ class TushareInterface(DataInterfaceBase):
             print('to_update', stock)
             for attempt in range(self.max_retries):
                 try:
-                    today = datetime.now().date().strftime('%Y%m%d')
+                    today = datetime.now().strftime('%Y%m%d')  # 直接格式化 datetime.now()
                     file_path = f'src/data/{stock}_daily_data.csv'
                     if os.path.exists((file_path)):
                         last_date = self.find_last_date_in_csv(file_path).strftime('%Y%m%d')

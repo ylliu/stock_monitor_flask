@@ -166,7 +166,7 @@ class DataInterfaceBase:
 
     def find_last_date_in_csv(self, file_path):
         try:
-            df = pd.read_csv(file_path, parse_dates=['trade_date'])
+            df = pd.read_csv(file_path, parse_dates=['trade_date'],date_format='%Y%m%d')
             last_date = df['trade_date'].max()
         except FileNotFoundError:
             last_date = None
