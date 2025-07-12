@@ -371,8 +371,8 @@ def get_monitor_records(date, board):
         return jsonify({'error': 'No records found for this date'}), 404
 
 
-@app.route('/run_back_test/<date>/<board><strategy_id>', methods=['GET'])
-def run_backtest(date, board, strategy_id):
+@app.route('/run_backtest/<date>/<board>/<strategy_id>/<tigger_cost>', methods=['GET'])
+def run_backtest(date, board, strategy_id, tigger_cost):
     if is_updating:
         return jsonify({'error': 'Is updating data please wait'}), 201
     print(date)
@@ -415,7 +415,7 @@ def run_backtest(date, board, strategy_id):
                                             ten_days_max_up_pct, is_second_day_price_up)
     data_interface = TushareInterface()
     stock_list = data_interface.get_all_stocks(board_name)
-    # stock_list = ['688160.SH']
+    # stock_list = ['600604.SH']
     last_code = stock_list[-1]
     first_code = stock_list[0]
     if local_running == 1:
@@ -447,25 +447,21 @@ def run_backtest(date, board, strategy_id):
     print(search_results)
     # records = StockMonitorRecord.query.all()
     # print(records)
-    if search_results:
+    backtest_results = washing_strategy.back_test(search_results, end_date, tigger_cost)
+    print(backtest_results)
+    if backtest_results:
         return jsonify([{
             'id': 'id',
-            'time': record.end_date,
+            'time': record.bullish_end_date,
             'stock_code': record.code,
             'stock_name': record.name,
-            'below_5_day_line': False,
-            'below_10_day_line': False,
-            'limit_circ_mv': record.limit_circ_mv,
-            'free_circ_mv': record.free_circ_mv,
-            'bullish_start_date': record.start_date,
-            'bullish_end_date': record.end_date,
-            'concept': record.concept,
-            'max_turnover_rate': record.max_turnover_rate,
-            'angle_of_5': record.angle_of_5,
-            'angle_of_10': record.angle_of_10,
-            'angle_of_20': record.angle_of_20,
-            'angle_of_30': record.angle_of_30,
-        } for record in search_results]), 200
+            'bullish_start_date': record.bullish_start_date,
+            'bullish_end_date': record.bullish_end_date,
+            'cost_price': record.cost_price,
+            'tigger_date': record.tigger_date,
+            'hold_max_price': record.hold_max_price,
+            'hold_max_rate': record.hold_max_rate,
+        } for record in backtest_results]), 200
     else:
         return jsonify({'error': 'No records found for this date'}), 404
 

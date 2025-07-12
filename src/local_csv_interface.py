@@ -377,3 +377,26 @@ class LocalCsvInterface(DataInterfaceBase):
         pct_change = (end_price - start_price) / start_price * 100  # 计算涨幅（%）
 
         return pct_change <= max_pct
+
+    def get_single_day_data(self, code, date):
+        current_dir = os.getcwd()
+        basic_csv_path = os.path.join(current_dir, f'src/data/{code}_daily_data.csv')
+        if not os.path.exists(basic_csv_path):
+            return None
+        df_basic = pd.read_csv(basic_csv_path, parse_dates=['trade_date'])
+        selected_row = df_basic[df_basic['trade_date'] == date]
+        if not selected_row.empty:
+            return selected_row.iloc[0]
+        else:
+            print(f"No data found for {code} on {date}")
+            return None
+
+    def get_dates_between(self, start_date, end_date):
+        # 将字符串日期转换为datetime对象
+        start = datetime.strptime(start_date, '%Y%m%d').date()
+        end = datetime.strptime(end_date, '%Y%m%d').date()
+
+        # 使用pd.bdate_range生成工作日范围，不包括end_date
+        trading_days = pd.bdate_range(start=start, end=end).strftime('%Y%m%d').tolist()
+
+        return trading_days[1:]

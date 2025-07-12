@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 
 import pandas as pd
@@ -17,6 +18,18 @@ V_max = 800  # 假设的最大流通市值（例如100亿）
 w_H = 0.4
 w_R = 0.4
 w_V = 0.2
+
+
+@dataclass
+class BacktestResult:
+    code: str
+    name: str
+    bullish_start_date: str
+    bullish_end_date: str
+    cost_price: float
+    tigger_date: str  # 允许为 None
+    hold_max_price: float
+    hold_max_rate: float
 
 
 def normalize(value, max_value):
@@ -348,3 +361,65 @@ class WashingStrategy:
         # 格式化日期为'YYYYMM'
         current_year_month = now.strftime('%Y%m')
         return f'./revenue/{current_year_month}.csv'
+
+    def back_test(self, search_results, backtest_end_date, tigger_cost):
+        """
+        回测策略
+        :param end_date: 回测结束日期
+        :param tigger_cost: 交易成本
+        :param search_results: 搜索结果
+        :return: None
+        """
+        if not search_results:
+            print("No search results to backtest.")
+            return
+
+        # 创建一个DataFrame来存储回测结果
+        backtest_results = []
+
+        for result in search_results:
+            # 获取每个结果的相关数据
+            code = result.code
+            name = result.name
+
+            bullish_end_date = result.end_date
+            dates = self.data_interface.get_dates_between(bullish_end_date.replace("-", ""),
+                                                          backtest_end_date.replace("-", ""))
+            if len(dates) <= 1:  # 如果没有足够的日期进行回测，跳过
+                continue
+            is_first_below_tigger_days = True
+            hold_max_price = 0
+            cost_price = 0
+            tigger_date = None
+            for date in dates:
+                # 在每个交易日获取最低价 看是否低于tigger_cost的均值
+
+                mean_price = self.data_interface.get_history_mean_price(code, date, int(tigger_cost))
+                single_data = self.data_interface.get_single_day_data(code, date)
+                if single_data is None:
+                    continue
+                low_price = single_data['low_qfq']
+                if low_price <= mean_price and is_first_below_tigger_days:
+                    # 记录成本价
+                    is_first_below_tigger_days = False
+                    cost_price = mean_price
+                    tigger_date = date
+                high_price = single_data['high_qfq']
+                if high_price > hold_max_price:
+                    hold_max_price = high_price
+
+            if not is_first_below_tigger_days:
+                hold_max_rate = round((hold_max_price - cost_price) / cost_price * 100, 2)
+                # 如果有满足条件的日期，记录结果
+                backtest_result = BacktestResult(
+                    code=code,
+                    name=name,
+                    bullish_start_date=result.start_date,
+                    bullish_end_date=result.end_date,
+                    cost_price=cost_price,
+                    tigger_date=tigger_date,
+                    hold_max_price=hold_max_price,
+                    hold_max_rate=hold_max_rate
+                )
+                backtest_results.append(backtest_result)
+        return backtest_results

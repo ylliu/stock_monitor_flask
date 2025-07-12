@@ -647,10 +647,12 @@ class TushareInterface(DataInterfaceBase):
         for attempt in range(self.max_retries):
             try:
                 df = pro.margin_detail(ts_code=code, trade_date=trade_date)
-                print('margin_info:',df)
+                print('margin_info:', df)
                 if len(df) > 0:
                     return True
                 return False
             except Exception as e:
                 print(f"发生异常: {e}")
                 atime.sleep(1)
+
+
