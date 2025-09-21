@@ -58,8 +58,8 @@ class StockConfig(db.Model):
     ten_days_max_up_pct = db.Column(db.Float, nullable=False)
     is_second_day_price_up = db.Column(db.Boolean, nullable=False, default=True)
     config_name = db.Column(db.String(255), nullable=False, default='default_value')
-    has_limit_up = db.Column(db.Boolean, nullable=False, default=False)
-    limit_up_days = db.Column(db.Integer, nullable=False, default=12)
+    has_limit_up = db.Column(db.Boolean, nullable=True, default=False)
+    limit_up_days = db.Column(db.Integer, nullable=True, default=12)
 
     def __repr__(self):
         return (f"<StockConfig(id={self.id}, board_type={self.board_type}, is_applied={self.is_applied}, "
