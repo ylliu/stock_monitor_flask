@@ -259,7 +259,9 @@ class WashingStrategy:
         if self.config.has_limit_up:
             print("check limit up...")
             print('days:', self.config.limit_up_days)
-            is_limit_up = TushareInterface().is_limit_up_past_days(day.code, self.end_date, self.config.limit_up_days)
+            end_date_limit_up = self.end_date[:10].replace("-", "")
+            is_limit_up = TushareInterface().is_limit_up_past_days(day.code, end_date_limit_up,
+                                                                   self.config.limit_up_days)
             if not is_limit_up:
                 return None
 
