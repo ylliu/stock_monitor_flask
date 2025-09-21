@@ -94,7 +94,8 @@ class WashingStrategyConfig:
                  volume_rate, positive_average_pct, second_positive_high_days, before_positive_limit_circ_mv_min,
                  before_positive_limit_circ_mv_max, before_positive_free_circ_mv_min, before_positive_free_circ_mv_max,
                  positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days, is_margin_stock,
-                 max_volume_high_days, five_days_max_up_pct, ten_days_max_up_pct, is_second_day_price_up):
+                 max_volume_high_days, five_days_max_up_pct, ten_days_max_up_pct, is_second_day_price_up, has_limit_up,
+                 limit_up_days):
         self.back_days = back_days
         self.end_date = end_date
         self.enable_local_run = enable_local_run
@@ -113,6 +114,8 @@ class WashingStrategyConfig:
         self.five_days_max_up_pct = five_days_max_up_pct
         self.ten_days_max_up_pct = ten_days_max_up_pct
         self.is_second_day_price_up = is_second_day_price_up
+        self.has_limit_up = has_limit_up
+        self.limit_up_days = limit_up_days
 
 
 class WashingStrategy:
@@ -252,6 +255,12 @@ class WashingStrategy:
         is_margined = TushareInterface().is_margin_stock(day.code, previous_daily_line.trade_date[:10].replace("-", ""))
         if self.config.is_margin_stock and not is_margined:
             return None
+
+        if self.config.has_limit_up:
+            is_limit_up = TushareInterface().is_limit_up_past_days(day.code, end_date, self.config.limit_up_days)
+            if not is_limit_up:
+                return None
+
         searchResult = SearchResult(day.code, name, count, start_date,
                                     end_date, limit_circ_mv, free_circ_mv, concept, max_turnover_rate,
                                     angle_of_5, angle_of_10, angle_of_20, angle_of_30)

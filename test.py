@@ -58,6 +58,8 @@ class StockConfig(db.Model):
     ten_days_max_up_pct = db.Column(db.Float, nullable=False)
     is_second_day_price_up = db.Column(db.Boolean, nullable=False, default=True)
     config_name = db.Column(db.String(255), nullable=False, default='default_value')
+    has_limit_up = db.Column(db.Boolean, nullable=False, default=False)
+    limit_up_days = db.Column(db.Integer, nullable=False, default=12)
 
     def __repr__(self):
         return (f"<StockConfig(id={self.id}, board_type={self.board_type}, is_applied={self.is_applied}, "
@@ -67,7 +69,8 @@ class StockConfig(db.Model):
                 f"second_candle_new_high_days={self.second_candle_new_high_days}, "
                 f"ma10_ratio={self.ma10_ratio}, days_to_ma10={self.days_to_ma10}, "
                 f"two_positive_pct_avg={self.two_positive_pct_avg}, min_positive_days={self.min_positive_days}, "
-                f"is_margin_stock={self.is_margin_stock})>")
+                f"is_margin_stock={self.is_margin_stock})>"
+                f"has_limit_up={self.has_limit_up}, limit_up_days={self.limit_up_days}")
 
 
 class StockMonitorRecord(db.Model):
@@ -110,7 +113,9 @@ def stock_config(board, id):
                 'five_days_max_up_pct': config.five_days_max_up_pct,
                 'ten_days_max_up_pct': config.ten_days_max_up_pct,
                 'is_second_day_price_up': config.is_second_day_price_up,
-                'config_name': config.config_name
+                'config_name': config.config_name,
+                'has_limit_up': config.has_limit_up,
+                'limit_up_days': config.limit_up_days
             })
         else:
             return jsonify({'error': 'No configuration found'}), 404
@@ -140,7 +145,9 @@ def stock_config(board, id):
                 five_days_max_up_pct=data['five_days_max_up_pct'],
                 ten_days_max_up_pct=data['ten_days_max_up_pct'],
                 is_second_day_price_up=data['is_second_day_price_up'],
-                config_name=data['config_name']
+                config_name=data['config_name'],
+                has_limit_up=data.get('has_limit_up', False),
+                limit_up_days=data.get('limit_up_days', 12)
 
             )
             db.session.add(new_config)
@@ -170,6 +177,9 @@ def stock_config(board, id):
                 config.ten_days_max_up_pct = data['ten_days_max_up_pct']
                 config.is_second_day_price_up = data['is_second_day_price_up']
                 config.config_name = data['config_name']
+                config.has_limit_up = data.get('has_limit_up', False)
+                config.limit_up_days = data.get('limit_up_days', 12)
+
                 db.session.commit()
                 return jsonify(data), 200
             else:
@@ -307,13 +317,15 @@ def get_monitor_records(date, board):
     five_days_max_up_pct = config.five_days_max_up_pct
     ten_days_max_up_pct = config.ten_days_max_up_pct
     is_second_day_price_up = config.is_second_day_price_up
+    has_limit_up = config.has_limit_up
+    limit_up_days = config.limit_up_days
     strategy_config = WashingStrategyConfig(back_days, end_date, local_running, volume_rate, positive_average_pct,
                                             second_positive_high_days, before_positive_limit_circ_mv_min,
                                             before_positive_limit_circ_mv_max, before_positive_free_circ_mv_min,
                                             before_positive_free_circ_mv_max,
                                             positive_to_ten_mean_periods, ten_mean_scaling_factor, min_positive_days,
                                             is_margin_stock, max_volume_high_days, five_days_max_up_pct,
-                                            ten_days_max_up_pct, is_second_day_price_up)
+                                            ten_days_max_up_pct, is_second_day_price_up, has_limit_up, limit_up_days)
     data_interface = TushareInterface()
     stock_list = data_interface.get_all_stocks(board_name)
     # stock_list = ['688160.SH']
@@ -734,5 +746,5 @@ thread.start()
 if __name__ == '__main__':
     print("ddd:")
 
-    # create_tables()
+    create_tables()
     app.run(host='0.0.0.0', port=5000)

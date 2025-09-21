@@ -1,5 +1,6 @@
 import math
 import os.path
+import time
 import time as atime
 from datetime import datetime
 
@@ -655,4 +656,70 @@ class TushareInterface(DataInterfaceBase):
                 print(f"发生异常: {e}")
                 atime.sleep(1)
 
+    def get_recent_trade_dates(self, date, days):
+        """
+        根据交易日历获取最近days个交易日
+        :param date: 当前日期 'YYYYMMDD'
+        :param days: 向前回溯的交易日天数
+        :return: 交易日列表（升序）
+        """
+        pro = ts.pro_api()
+        for attempt in range(self.max_retries):
+            try:
+                # 获取交易日历，is_open=1 表示开市
+                cal_df = pro.trade_cal(start_date="20000101", end_date=date)
+                cal_df = cal_df[cal_df["is_open"] == 1]
 
+                # 取 date 之前最近 days 天交易日
+                cal_df = cal_df[cal_df["cal_date"] <= date].sort_values("cal_date", ascending=False)
+                limit_list_d = cal_df.head(days)["cal_date"].tolist()
+                limit_list_d.sort()  # 升序排列
+                return limit_list_d
+
+            except Exception as e:
+                print(f"[交易日历] 获取数据异常: {e} (尝试 {attempt + 1}/{self.max_retries})")
+                time.sleep(1)
+
+        return []
+
+    def is_limit_up_past_days(self, code, date, days):
+        """
+        判断股票最近days个交易日内是否有涨停
+        直接使用 limit_list_d 接口，不需要手动计算涨停价
+        :param code: 股票代码，如 '000001.SZ'
+        :param date: 当前日期 YYYYMMDD
+        :param days: 检查最近days天
+        :return: True / False
+        """
+        # 获取最近days个交易日
+        pro = ts.pro_api()
+        trade_dates = self.get_recent_trade_dates(date, days)
+        if not trade_dates:
+            print(f"[{code}] 无法获取交易日历，返回False")
+            return False
+
+        start_date = trade_dates[0]
+        end_date = trade_dates[-1]
+
+        for attempt in range(self.max_retries):
+            try:
+                df = pro.limit_list_d(
+                    ts_code=code,
+                    start_date=start_date,
+                    end_date=end_date,
+                    limit_type='U'  # 只获取涨停记录
+                )
+
+                if df is not None and len(df) > 0:
+                    # 如果存在记录，说明最近days天有涨停
+                    print(f"[{code}] 最近{days}个交易日有涨停，记录条数: {len(df)}")
+                    return True
+                else:
+                    print(f"[{code}] 最近{days}个交易日没有涨停记录")
+                    return False
+
+            except Exception as e:
+                print(f"[{code}] 获取涨停数据异常: {e} (尝试 {attempt + 1}/{self.max_retries})")
+                time.sleep(1)
+
+        return False
