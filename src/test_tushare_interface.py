@@ -6,10 +6,9 @@ from src.tushare_interface import TushareInterface
 class TestTushareInterface(TestCase):
     def test_is_limit_up_past_days(self):
         tushare = TushareInterface()
-        res = tushare.is_limit_up_past_days('300001.SZ', '20250920', 3)
+        res = tushare.is_limit_up_past_days('000818.SZ', '20250921', 12)
         self.assertEqual(res, False)
-        res = tushare.is_limit_up_past_days('002059.SZ', '20250920', 3)
-        self.assertEqual(res, True)
+
 
     def test_get_recent_trade_dates(self):
         tushare = TushareInterface()

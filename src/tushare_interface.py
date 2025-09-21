@@ -700,7 +700,7 @@ class TushareInterface(DataInterfaceBase):
 
         start_date = trade_dates[0]
         end_date = trade_dates[-1]
-
+        print(f"[{code}] 涨停检查日期范围: {start_date} - {end_date}")
         for attempt in range(self.max_retries):
             try:
                 df = pro.limit_list_d(
